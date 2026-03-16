@@ -1,175 +1,252 @@
 
 
+// // import { useState } from "react";
+// // import { useNavigate } from "react-router-dom";
+
+// // export default function Login() {
+// //   const navigate = useNavigate();
+
+// //   const [usn, setUsn] = useState("");
+// //   const [password, setPassword] = useState("");
+
+// //   const loginStudent = async () => {
+// //     if (!usn || !password) {
+// //       alert("Enter USN and Password");
+// //       return;
+// //     }
+
+// //     try {
+// //       const res = await fetch("http://localhost:8000/students/login", {
+// //         method: "POST",
+// //         headers: {
+// //           "Content-Type": "application/json",
+// //         },
+// //         body: JSON.stringify({
+// //           usn: usn,
+// //           password: password,
+// //         }),
+// //       });
+
+// //       if (!res.ok) {
+// //         alert("Login request failed");
+// //         return;
+// //       }
+
+// //       const data = await res.json();
+
+// //       if (data.status === "Login success") {
+// //         localStorage.setItem("student_usn", data.usn);
+// //         localStorage.setItem("student_id", data.student_id);
+
+// //         alert("Login Successful");
+
+// //         navigate("/student/dashboard");
+// //       } else {
+// //         alert(data.status);
+// //       }
+// //     } catch (error) {
+// //       console.error(error);
+// //       alert("Server connection failed");
+// //     }
+// //   };
+
+// //   return (
+// //     <div className="card">
+// //       <h2>Student Login</h2>
+
+// //       <input
+// //         placeholder="USN"
+// //         value={usn}
+// //         onChange={(e) => setUsn(e.target.value)}
+// //       />
+
+// //       <input
+// //         type="password"
+// //         placeholder="Password"
+// //         value={password}
+// //         onChange={(e) => setPassword(e.target.value)}
+// //       />
+
+// //       <button onClick={loginStudent}>Login</button>
+
+// //       <p>
+// //         Don't have account? <a href="/student/register">Register</a>
+// //       </p>
+// //     </div>
+// //   );
+// // }
+
+
+
+
 // import { useState } from "react";
 // import { useNavigate } from "react-router-dom";
 
 // export default function Login() {
-//   const navigate = useNavigate();
 
-//   const [usn, setUsn] = useState("");
-//   const [password, setPassword] = useState("");
+// const navigate = useNavigate();
 
-//   const loginStudent = async () => {
-//     if (!usn || !password) {
-//       alert("Enter USN and Password");
-//       return;
-//     }
+// const [usn,setUsn] = useState("");
+// const [password,setPassword] = useState("");
 
-//     try {
-//       const res = await fetch("http://localhost:8000/students/login", {
-//         method: "POST",
-//         headers: {
-//           "Content-Type": "application/json",
-//         },
-//         body: JSON.stringify({
-//           usn: usn,
-//           password: password,
-//         }),
-//       });
+// const loginStudent = async()=>{
 
-//       if (!res.ok) {
-//         alert("Login request failed");
-//         return;
-//       }
-
-//       const data = await res.json();
-
-//       if (data.status === "Login success") {
-//         localStorage.setItem("student_usn", data.usn);
-//         localStorage.setItem("student_id", data.student_id);
-
-//         alert("Login Successful");
-
-//         navigate("/student/dashboard");
-//       } else {
-//         alert(data.status);
-//       }
-//     } catch (error) {
-//       console.error(error);
-//       alert("Server connection failed");
-//     }
-//   };
-
-//   return (
-//     <div className="card">
-//       <h2>Student Login</h2>
-
-//       <input
-//         placeholder="USN"
-//         value={usn}
-//         onChange={(e) => setUsn(e.target.value)}
-//       />
-
-//       <input
-//         type="password"
-//         placeholder="Password"
-//         value={password}
-//         onChange={(e) => setPassword(e.target.value)}
-//       />
-
-//       <button onClick={loginStudent}>Login</button>
-
-//       <p>
-//         Don't have account? <a href="/student/register">Register</a>
-//       </p>
-//     </div>
-//   );
+// if(!usn || !password){
+// alert("Enter USN and Password");
+// return;
 // }
 
+// try{
 
+// const res = await fetch("http://localhost:8000/students/login",{
 
+// method:"POST",
+// headers:{
+// "Content-Type":"application/json"
+// },
+
+// body:JSON.stringify({
+// usn,
+// password
+// })
+
+// });
+
+// const data = await res.json();
+
+// if(data.status === "Login success"){
+
+// localStorage.setItem("student_usn",data.student.usn);
+// localStorage.setItem("student_id",data.student.id);
+
+// alert("Login Successful");
+
+// navigate("/student/dashboard");
+
+// }else{
+
+// alert(data.status);
+
+// }
+
+// }catch(error){
+
+// console.error(error);
+// alert("Server connection failed");
+
+// }
+
+// };
+
+// return(
+
+// <div className="card">
+
+// <h2>Student Login</h2>
+
+// <input
+// placeholder="Enter USN"
+// value={usn}
+// onChange={(e)=>setUsn(e.target.value)}
+// />
+
+// <input
+// type="password"
+// placeholder="Enter Password"
+// value={password}
+// onChange={(e)=>setPassword(e.target.value)}
+// />
+
+// <button onClick={loginStudent}>
+// Login
+// </button>
+
+// <p style={{marginTop:"15px"}}>
+// Don't have account? 
+// <a href="/student/register" style={{color:"#fff",fontWeight:"bold"}}>
+//  Register
+// </a>
+// </p>
+
+// </div>
+
+// );
+
+// }
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Login() {
+  const navigate = useNavigate();
 
-const navigate = useNavigate();
+  const [usn, setUsn] = useState("");
+  const [password, setPassword] = useState("");
 
-const [usn,setUsn] = useState("");
-const [password,setPassword] = useState("");
+  const loginStudent = async () => {
+    if (!usn || !password) {
+      alert("Enter USN and Password");
+      return;
+    }
 
-const loginStudent = async()=>{
+    try {
+      // Use your verified Railway URL instead of localhost
+      const backendUrl = "https://final-production-8aff.up.railway.app";
+      
+      const res = await fetch(`${backendUrl}/students/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          usn,
+          password
+        })
+      });
 
-if(!usn || !password){
-alert("Enter USN and Password");
-return;
-}
+      const data = await res.json();
 
-try{
+      if (data.status === "Login success") {
+        // Updated to handle the data structure based on your working API docs
+        localStorage.setItem("student_usn", data.student.usn);
+        localStorage.setItem("student_id", data.student.id);
 
-const res = await fetch("http://localhost:8000/students/login",{
+        alert("Login Successful");
+        navigate("/student/dashboard");
+      } else {
+        alert(data.status);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Server connection failed");
+    }
+  };
 
-method:"POST",
-headers:{
-"Content-Type":"application/json"
-},
+  return (
+    <div className="card">
+      <h2>Student Login</h2>
 
-body:JSON.stringify({
-usn,
-password
-})
+      <input
+        placeholder="Enter USN"
+        value={usn}
+        onChange={(e) => setUsn(e.target.value)}
+      />
 
-});
+      <input
+        type="password"
+        placeholder="Enter Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
 
-const data = await res.json();
+      <button onClick={loginStudent}>Login</button>
 
-if(data.status === "Login success"){
-
-localStorage.setItem("student_usn",data.student.usn);
-localStorage.setItem("student_id",data.student.id);
-
-alert("Login Successful");
-
-navigate("/student/dashboard");
-
-}else{
-
-alert(data.status);
-
-}
-
-}catch(error){
-
-console.error(error);
-alert("Server connection failed");
-
-}
-
-};
-
-return(
-
-<div className="card">
-
-<h2>Student Login</h2>
-
-<input
-placeholder="Enter USN"
-value={usn}
-onChange={(e)=>setUsn(e.target.value)}
-/>
-
-<input
-type="password"
-placeholder="Enter Password"
-value={password}
-onChange={(e)=>setPassword(e.target.value)}
-/>
-
-<button onClick={loginStudent}>
-Login
-</button>
-
-<p style={{marginTop:"15px"}}>
-Don't have account? 
-<a href="/student/register" style={{color:"#fff",fontWeight:"bold"}}>
- Register
-</a>
-</p>
-
-</div>
-
-);
-
+      <p style={{ marginTop: "15px" }}>
+        Don't have account? 
+        <a href="/student/register" style={{ color: "#fff", fontWeight: "bold" }}>
+          Register
+        </a>
+      </p>
+    </div>
+  );
 }

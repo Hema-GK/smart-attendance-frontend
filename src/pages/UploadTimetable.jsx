@@ -1,63 +1,123 @@
+// import { useState } from "react"
+// import axios from "axios"
+
+// export default function UploadTimetable(){
+
+// const [file,setFile] = useState(null)
+
+// const uploadTimetable = async () => {
+
+// if(!file){
+// alert("Please select a CSV file")
+// return
+// }
+
+// const formData = new FormData()
+// formData.append("file",file)
+
+// try{
+
+// const res = await axios.post(
+// "http://127.0.0.1:8000/admin/upload-timetable",
+// formData,
+// {
+// headers:{
+// "Content-Type":"multipart/form-data"
+// }
+// }
+// )
+
+// alert(res.data.message || "Timetable uploaded successfully")
+
+// }catch(err){
+
+// console.log(err)
+// alert("Upload failed")
+
+// }
+
+// }
+
+// return(
+
+// <div className="card">
+
+// <h2>Upload Timetable CSV</h2>
+
+// <input
+// type="file"
+// accept=".csv"
+// onChange={(e)=>setFile(e.target.files[0])}
+// />
+
+// <br/><br/>
+
+// <button onClick={uploadTimetable}>
+// Upload Timetable CSV
+// </button>
+
+// </div>
+
+// )
+
+// }
+
 import { useState } from "react"
 import axios from "axios"
 
 export default function UploadTimetable(){
 
-const [file,setFile] = useState(null)
+  const [file, setFile] = useState(null)
 
-const uploadTimetable = async () => {
+  const uploadTimetable = async () => {
 
-if(!file){
-alert("Please select a CSV file")
-return
-}
+    if(!file){
+      alert("Please select a CSV file")
+      return
+    }
 
-const formData = new FormData()
-formData.append("file",file)
+    const formData = new FormData()
+    formData.append("file", file)
 
-try{
+    try {
+      // Pointing to your verified live Railway backend
+      const backendUrl = "https://final-production-8aff.up.railway.app";
 
-const res = await axios.post(
-"http://127.0.0.1:8000/admin/upload-timetable",
-formData,
-{
-headers:{
-"Content-Type":"multipart/form-data"
-}
-}
-)
+      const res = await axios.post(
+        `${backendUrl}/admin/upload-timetable`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data"
+          }
+        }
+      )
 
-alert(res.data.message || "Timetable uploaded successfully")
+      alert(res.data.message || "Timetable uploaded successfully")
 
-}catch(err){
+    } catch(err) {
+      console.log("ERROR:", err)
+      // Standardizing error message to indicate connection status
+      alert("Upload failed: Server connection error")
+    }
 
-console.log(err)
-alert("Upload failed")
+  }
 
-}
+  return (
+    <div className="card">
+      <h2>Upload Timetable CSV</h2>
 
-}
+      <input
+        type="file"
+        accept=".csv"
+        onChange={(e) => setFile(e.target.files[0])}
+      />
 
-return(
+      <br/><br/>
 
-<div className="card">
-
-<h2>Upload Timetable CSV</h2>
-
-<input
-type="file"
-accept=".csv"
-onChange={(e)=>setFile(e.target.files[0])}
-/>
-
-<br/><br/>
-
-<button onClick={uploadTimetable}>
-Upload Timetable CSV
-</button>
-
-</div>
-
-)
-
+      <button onClick={uploadTimetable}>
+        Upload Timetable CSV
+      </button>
+    </div>
+  )
 }
