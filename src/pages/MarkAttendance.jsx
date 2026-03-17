@@ -156,8 +156,8 @@ export default function MarkAttendance() {
   const [isInRange, setIsInRange] = useState(false);
 
   // COORDINATES: Center of your room from your GPS logs
-  const roomCenter = { lat: 12.51642, lon: 76.88148 };
-  const ALLOWED_RADIUS = 5.0; // 5 meters
+  const roomCenter = { lat: 12.51635, lon: 76.88126 };
+  const ALLOWED_RADIUS = 10.0; // 5 meters
 
   useEffect(() => {
     const fetchClass = async () => {
