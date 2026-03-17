@@ -1,135 +1,131 @@
 import { useState, useEffect } from "react";
+import API from "../api/api";
+import FaceCapture from "../components/FaceCapture";
 
-// Haversine formula to calculate distance in meters
+// Helper to calculate distance in meters (Haversine formula)
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000; // Earth radius in meters
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const R = 6371e3; // Earth radius in meters
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+
   const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) *
-    Math.cos(lat2 * (Math.PI / 180)) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+
+  return Math.round(R * c);
 };
 
-export default function MarkAttendance({ studentId }) {
+export default function MarkAttendance() {
   const [currentClass, setCurrentClass] = useState(null);
-  const [location, setLocation] = useState({ lat: null, lon: null });
   const [distance, setDistance] = useState(null);
-  const [status, setStatus] = useState("Checking class...");
-  const [loading, setLoading] = useState(false);
+  const [inRange, setInRange] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [userCoords, setUserCoords] = useState(null);
 
-  // 1. Fetch the active class based on current time
+  // 1. Fetch the active class and its room polygon from backend
   useEffect(() => {
-    const fetchClass = async () => {
+    const fetchCurrentClass = async () => {
       try {
-        const res = await fetch("https://final-production-8aff.up.railway.app/timetable/current-class");
-        const data = await res.json();
-        if (data.status === "Class Active") {
-          setCurrentClass(data.class);
+        const res = await API.get("/timetable/current-class");
+        if (res.data.status === "Class Active") {
+          setCurrentClass(res.data.class);
         } else {
-          setStatus(data.message || "No active class found.");
+          setCurrentClass(null);
         }
       } catch (err) {
-        setStatus("Error reaching server.");
+        console.error("Error fetching class:", err);
+      } finally {
+        setLoading(false);
       }
     };
-    fetchClass();
+    fetchCurrentClass();
   }, []);
 
-  // 2. Track GPS Location and calculate distance
+  // 2. Track user location and calculate distance to classroom
   useEffect(() => {
-    if (!navigator.geolocation) {
-      setStatus("Geolocation not supported");
-      return;
-    }
+    if (!currentClass || !currentClass.location_polygon) return;
+
+    const poly = typeof currentClass.location_polygon === "string"
+      ? JSON.parse(currentClass.location_polygon)
+      : currentClass.location_polygon;
+
+    // Use the first coordinate pair as the center point
+    const [targetLat, targetLon] = poly[0];
 
     const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        const userLat = pos.coords.latitude;
-        const userLon = pos.coords.longitude;
-        setLocation({ lat: userLat, lon: userLon });
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setUserCoords({ latitude, longitude });
 
-        if (currentClass && currentClass.center_latitude) {
-          const dist = calculateDistance(
-            userLat,
-            userLon,
-            currentClass.center_latitude,
-            currentClass.center_longitude
-          );
-          setDistance(dist);
-        }
+        const dist = calculateDistance(latitude, longitude, targetLat, targetLon);
+        setDistance(dist);
+        
+        // 15m threshold to match updated backend routes
+        setInRange(dist <= 15); 
       },
-      (err) => setStatus("GPS Access Denied"),
-      { enableHighAccuracy: true }
+      (error) => console.error("GPS Error:", error),
+      { enableHighAccuracy: true, maximumAge: 0 }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [currentClass]);
 
-  const handleMark = async () => {
-    if (!distance || distance > 15.0) {
-      alert(`Too far! You are ${distance?.toFixed(2)}m away. Limit is 15m.`);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/attendance/mark", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          student_id: studentId,
-          timetable_id: currentClass.id,
-          latitude: location.lat,
-          longitude: location.lon,
-        }),
-      });
-
-      const result = await res.json();
-      if (result.status === "success") {
-        alert(result.message);
-        setStatus("Attendance Marked Successfully!");
-      } else {
-        alert(result.message); // This shows the 'DB Error' or 'GEO-FENCE' error
-      }
-    } catch (err) {
-      alert("Submission failed. Check network.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (!currentClass) return <div className="status-box">{status}</div>;
-
-  const isInside = distance !== null && distance <= 15.0;
+  if (loading) return <div style={styles.center}>Loading active session...</div>;
 
   return (
-    <div className="attendance-card">
-      <h3>{currentClass.subject}</h3>
-      <p>Room: {currentClass.classroom}</p>
+    <div style={styles.container}>
+      {currentClass ? (
+        <>
+          <div style={styles.headerCard}>
+            <h2 style={styles.subject}>{currentClass.subject}</h2>
+            <p style={styles.room}>Room: {currentClass.classroom}</p>
+          </div>
 
-      {/* Radar Logic */}
-      <div className={`radar-circle ${isInside ? "active" : "inactive"}`}>
-        <div className="pulse"></div>
-        <span className="distance-text">
-          {distance ? `${distance.toFixed(1)}m` : "Locating..."}
-        </span>
-      </div>
+          <div style={inRange ? styles.radarSuccess : styles.radarWarning}>
+            <p style={styles.radarTitle}>Distance Radar</p>
+            <h1 style={styles.distanceText}>
+              {distance !== null ? `${distance}m` : "--m"}
+            </h1>
+            <p>{inRange ? "✅ You are in Range" : "❌ Walk closer to Room"}</p>
+          </div>
 
-      <p className="status-msg">
-        {isInside ? "You are inside the class" : "You are outside the range"}
-      </p>
+          {/* Debug coordinates (optional) */}
+          <p style={styles.debugText}>
+            GPS: {userCoords?.latitude.toFixed(5)}, {userCoords?.longitude.toFixed(5)}
+          </p>
 
-      <button 
-        onClick={handleMark} 
-        disabled={!isInside || loading}
-        className="mark-btn"
-      >
-        {loading ? "Marking..." : "Submit Attendance"}
-      </button>
+          {inRange ? (
+            <FaceCapture currentClass={currentClass} />
+          ) : (
+            <div style={styles.infoBox}>
+              Face verification is disabled until you are inside the classroom boundary.
+            </div>
+          )}
+        </>
+      ) : (
+        <div style={styles.noClass}>
+          <h2>No Active Class Found</h2>
+          <p>Please check your timetable or wait for the session to start.</p>
+        </div>
+      )}
     </div>
   );
 }
+
+const styles = {
+  container: { padding: "20px", maxWidth: "500px", margin: "0 auto", textAlign: "center", fontFamily: "sans-serif" },
+  headerCard: { background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
+  subject: { margin: 0, fontSize: "24px" },
+  room: { margin: "5px 0 0", opacity: 0.9 },
+  radarSuccess: { background: "rgba(76, 175, 80, 0.1)", border: "2px solid #4CAF50", padding: "20px", borderRadius: "15px", marginBottom: "20px", color: "#2e7d32" },
+  radarWarning: { background: "rgba(244, 67, 54, 0.1)", border: "2px solid #f44336", padding: "20px", borderRadius: "15px", marginBottom: "20px", color: "#c62828" },
+  radarTitle: { margin: 0, fontWeight: "bold", textTransform: "uppercase", fontSize: "14px" },
+  distanceText: { margin: "10px 0", fontSize: "48px" },
+  infoBox: { background: "#3f51b5", color: "white", padding: "15px", borderRadius: "10px", lineHeight: "1.5" },
+  noClass: { marginTop: "50px", color: "#666" },
+  debugText: { fontSize: "10px", color: "#999", marginBottom: "10px" },
+  center: { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }
+};
