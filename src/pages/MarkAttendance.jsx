@@ -1,249 +1,140 @@
-// import { useState, useEffect } from "react"
-// import FaceCapture from "../components/FaceCapture"
-// import API from "../api/api"
-
-// export default function MarkAttendance() {
-
-// const [currentClass, setCurrentClass] = useState(null)
-// const [loading, setLoading] = useState(true)
-
-// useEffect(()=>{
-
-// API.get("/timetable/current-class")
-// .then(res=>{
-
-// if(res.data.status === "Class Active"){
-// setCurrentClass(res.data.class)
-// }
-
-// setLoading(false)
-
-// })
-// .catch(err=>{
-// console.log(err)
-// setLoading(false)
-// })
-
-// },[])
-
-
-// /* ---------------- LOADING SCREEN ---------------- */
-
-// if(loading){
-
-// return(
-
-// <div style={{
-// display:"flex",
-// justifyContent:"center",
-// alignItems:"center",
-// height:"100vh",
-// background:"linear-gradient(135deg,#667eea,#764ba2)"
-// }}>
-
-// <h2 style={{color:"white"}}>Checking Current Class...</h2>
-
-// </div>
-
-// )
-
-// }
-
-
-// /* ---------------- NO CLASS ---------------- */
-
-// if(!currentClass){
-
-// return(
-
-// <div style={{
-// display:"flex",
-// justifyContent:"center",
-// alignItems:"center",
-// height:"100vh",
-// background:"linear-gradient(135deg,#667eea,#764ba2)"
-// }}>
-
-// <div style={{
-// background:"rgba(255,255,255,0.15)",
-// backdropFilter:"blur(10px)",
-// padding:"40px",
-// borderRadius:"15px",
-// color:"white",
-// textAlign:"center",
-// boxShadow:"0 10px 30px rgba(0,0,0,0.3)"
-// }}>
-
-// <h2>No Class Currently Running</h2>
-// <p>Please try again during class time.</p>
-
-// </div>
-
-// </div>
-
-// )
-
-// }
-
-
-// /* ---------------- MAIN PAGE ---------------- */
-
-// return(
-
-// <div style={{
-// minHeight:"100vh",
-// background:"linear-gradient(135deg,#667eea,#764ba2)",
-// display:"flex",
-// justifyContent:"center",
-// alignItems:"center",
-// flexDirection:"column"
-// }}>
-
-// {/* CURRENT CLASS CARD */}
-
-// <div style={{
-// background:"rgba(255,255,255,0.15)",
-// backdropFilter:"blur(12px)",
-// padding:"30px",
-// borderRadius:"15px",
-// color:"white",
-// textAlign:"center",
-// boxShadow:"0 10px 30px rgba(0,0,0,0.3)",
-// marginBottom:"30px",
-// width:"350px"
-// }}>
-
-// <h2>Current Class</h2>
-
-// <p><b>Subject:</b> {currentClass.subject}</p>
-// <p><b>Section:</b> {currentClass.section}</p>
-// <p><b>Semester:</b> {currentClass.semester}</p>
-// <p><b>Room:</b> {currentClass.classroom}</p>
-
-// </div>
-
-
-// {/* FACE ATTENDANCE */}
-
-// <FaceCapture currentClass={currentClass}/>
-
-// </div>
-
-// )
-
-// }
-
 import { useState, useEffect } from "react";
-import FaceCapture from "../components/FaceCapture";
 import API from "../api/api";
+import FaceCapture from "../components/FaceCapture";
 
-// --- HAVERSINE FORMULA: Calculates real-world distance in meters ---
+// Haversine formula to calculate distance in meters
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000; // Earth's radius in meters
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = 
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  const R = 6371e3; 
+  const φ1 = (lat1 * Math.PI) / 180;
+  const φ2 = (lat2 * Math.PI) / 180;
+  const Δφ = ((lat2 - lat1) * Math.PI) / 180;
+  const Δλ = ((lon2 - lon1) * Math.PI) / 180;
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
 export default function MarkAttendance() {
   const [currentClass, setCurrentClass] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [distance, setDistance] = useState(null);
-  const [isInRange, setIsInRange] = useState(false);
+  const [inRange, setInRange] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // COORDINATES: Center of your room from your GPS logs
-  const roomCenter = { lat: 12.51635, lon: 76.88126 };
-  const ALLOWED_RADIUS = 10.0; // 5 meters
-
+  // Fetch Class Data
   useEffect(() => {
     const fetchClass = async () => {
       try {
         const res = await API.get("/timetable/current-class");
-        if (res.data.status === "Class Active") {
+        if (res.data.class) {
           setCurrentClass(res.data.class);
+          setTimeLeft(res.data.class.minutes_left);
         }
       } catch (err) {
-        console.error("Error fetching class:", err);
+        console.error("API Error:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchClass();
+  }, []);
 
-    // LIVE TRACKING: Watch position for real-time distance updates
+  // Local Countdown Timer logic
+  useEffect(() => {
+    if (timeLeft === null || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  // Location Tracking logic
+  useEffect(() => {
+    if (!currentClass || currentClass.is_lunch || !currentClass.location_polygon) return;
+
+    const poly = typeof currentClass.location_polygon === "string"
+      ? JSON.parse(currentClass.location_polygon)
+      : currentClass.location_polygon;
+
+    const [targetLat, targetLon] = poly[0];
+
     const watchId = navigator.geolocation.watchPosition(
       (pos) => {
-        const d = calculateDistance(
-          pos.coords.latitude,
-          pos.coords.longitude,
-          roomCenter.lat,
-          roomCenter.lon
-        );
-        setDistance(d.toFixed(2));
-        setIsInRange(d <= ALLOWED_RADIUS);
+        const dist = calculateDistance(pos.coords.latitude, pos.coords.longitude, targetLat, targetLon);
+        setDistance(dist);
+        setInRange(dist <= 15); // Sync with 15m backend radius
       },
       (err) => console.error("GPS Error:", err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 5000 }
+      { enableHighAccuracy: true }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
+  }, [currentClass]);
 
-  const pageStyle = {
-    minHeight: "100vh",
-    background: "linear-gradient(135deg, #667eea, #764ba2)",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: "20px",
-    fontFamily: "Arial, sans-serif"
-  };
-
-  if (loading) return <div style={pageStyle}><h2 style={{ color: "white" }}>Checking Class...</h2></div>;
-
-  if (!currentClass) {
-    return (
-      <div style={pageStyle}>
-        <div style={{ background: "rgba(255,255,255,0.2)", padding: "40px", borderRadius: "15px", textAlign: "center", color: "white" }}>
-          <h2>No Class Currently Running</h2>
-          <button onClick={() => window.location.reload()} style={{ marginTop: "20px", padding: "10px 20px" }}>Retry</button>
-        </div>
-      </div>
-    );
-  }
+  if (loading) return <div style={styles.center}>Loading Session...</div>;
 
   return (
-    <div style={pageStyle}>
-      {/* 1. Class Information Card */}
-      <div style={{ background: "rgba(255,255,255,0.2)", padding: "20px", borderRadius: "15px", color: "white", textAlign: "center", marginBottom: "20px", width: "350px" }}>
-        <h2>{currentClass.subject}</h2>
-        <p><b>Room:</b> {currentClass.classroom}</p>
-      </div>
+    <div style={styles.container}>
+      {currentClass ? (
+        <>
+          {/* Header Section */}
+          <div style={currentClass.is_lunch ? styles.lunchHeader : styles.headerCard}>
+            <h2 style={styles.subject}>{currentClass.subject}</h2>
+            <p style={styles.room}>
+              {currentClass.is_lunch ? "Time for a break!" : `Room: ${currentClass.classroom}`}
+            </p>
+            <div style={styles.timerBadge}>
+              ⏱️ {timeLeft} mins remaining
+            </div>
+          </div>
 
-      {/* 2. LIVE DISTANCE RADAR UI */}
-      <div style={{ 
-          background: isInRange ? "rgba(76, 175, 80, 0.4)" : "rgba(244, 67, 54, 0.4)", 
-          padding: "20px", borderRadius: "15px", color: "white", textAlign: "center", marginBottom: "30px", width: "350px", border: "1px solid white" 
-      }}>
-        <h3>Distance Radar</h3>
-        <p style={{ fontSize: "28px", fontWeight: "bold", margin: "10px 0" }}>
-            {distance ? `${distance}m` : "Locating..."}
-        </p>
-        <p style={{ fontSize: "18px" }}>{isInRange ? "✅ You are in Range" : "❌ Walk closer to Room"}</p>
-      </div>
+          {currentClass.is_lunch ? (
+            /* Lunch UI */
+            <div style={styles.lunchBox}>
+              <span style={{ fontSize: "50px" }}>🍛</span>
+              <h3>Lunch Break</h3>
+              <p>The system is currently on break. Verification is paused.</p>
+            </div>
+          ) : (
+            /* Attendance UI */
+            <>
+              <div style={inRange ? styles.radarSuccess : styles.radarWarning}>
+                <p style={styles.radarTitle}>Distance Radar</p>
+                <h1 style={styles.distanceText}>{distance !== null ? `${distance}m` : "Locating..."}</h1>
+                <p>{inRange ? "✅ You are in Range" : "❌ Walk closer to Room"}</p>
+              </div>
 
-      {/* 3. FACE CAPTURE SECTION */}
-      {isInRange ? (
-        <FaceCapture currentClass={currentClass} />
+              {inRange ? (
+                <FaceCapture currentClass={currentClass} />
+              ) : (
+                <div style={styles.infoBox}>
+                  Face verification is disabled until you are inside the classroom boundary.
+                </div>
+              )}
+            </>
+          )}
+        </>
       ) : (
-        <div style={{ color: "white", textAlign: "center", opacity: 0.8, background: "rgba(0,0,0,0.2)", padding: "15px", borderRadius: "10px" }}>
-          <p>Face verification is disabled until you are inside the classroom boundary.</p>
+        <div style={styles.noClass}>
+          <h2>No Active Session</h2>
+          <p>Please check your timetable for the next class.</p>
         </div>
       )}
     </div>
   );
 }
+
+const styles = {
+  container: { padding: "20px", maxWidth: "450px", margin: "0 auto", textAlign: "center" },
+  headerCard: { background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
+  lunchHeader: { background: "linear-gradient(135deg, #f6d365, #fda085)", color: "#5d4037", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
+  subject: { margin: 0, fontSize: "22px" },
+  room: { margin: "5px 0", opacity: 0.9 },
+  timerBadge: { background: "rgba(0,0,0,0.2)", display: "inline-block", padding: "5px 12px", borderRadius: "20px", fontSize: "12px", marginTop: "10px" },
+  radarSuccess: { background: "#e8f5e9", border: "2px solid #4CAF50", padding: "20px", borderRadius: "15px", color: "#2e7d32", marginBottom: "20px" },
+  radarWarning: { background: "#ffebee", border: "2px solid #f44336", padding: "20px", borderRadius: "15px", color: "#c62828", marginBottom: "20px" },
+  distanceText: { fontSize: "48px", margin: "10px 0" },
+  lunchBox: { padding: "40px 20px", background: "#fffde7", borderRadius: "15px", border: "2px dashed #fbc02d" },
+  infoBox: { background: "#5c6bc0", color: "white", padding: "15px", borderRadius: "10px", fontSize: "14px" },
+  center: { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" },
+  noClass: { marginTop: "100px", color: "#999" }
+};
