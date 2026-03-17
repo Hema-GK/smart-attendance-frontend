@@ -213,7 +213,7 @@ export default function RegisterStudent() {
         name,
         usn,
         password,
-        semester, 
+        semester:parseInt(semester),
         section,
         image
       });
