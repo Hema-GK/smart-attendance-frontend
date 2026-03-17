@@ -2,113 +2,121 @@ import { useState, useEffect } from "react";
 import API from "../api/api";
 import FaceCapture from "../components/FaceCapture";
 
-// Helper to calculate distance in meters (Haversine formula)
+// Haversine formula to calculate distance in meters
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3; 
   const φ1 = (lat1 * Math.PI) / 180;
   const φ2 = (lat2 * Math.PI) / 180;
   const Δφ = ((lat2 - lat1) * Math.PI) / 180;
   const Δλ = ((lon2 - lon1) * Math.PI) / 180;
-
-  const a =
-    Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
-    Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  return Math.round(R * c);
+  const a = Math.sin(Δφ / 2) ** 2 + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 };
 
 export default function MarkAttendance() {
   const [currentClass, setCurrentClass] = useState(null);
   const [distance, setDistance] = useState(null);
   const [inRange, setInRange] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [userCoords, setUserCoords] = useState(null);
 
-  // 1. Fetch the active class and its room polygon from backend
+  // Fetch Class Data
   useEffect(() => {
-    const fetchCurrentClass = async () => {
+    const fetchClass = async () => {
       try {
         const res = await API.get("/timetable/current-class");
-        if (res.data.status === "Class Active") {
+        if (res.data.class) {
           setCurrentClass(res.data.class);
-        } else {
-          setCurrentClass(null);
+          setTimeLeft(res.data.class.minutes_left);
         }
       } catch (err) {
-        console.error("Error fetching class:", err);
+        console.error("API Error:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchCurrentClass();
+    fetchClass();
   }, []);
 
-  // 2. Track user location and calculate distance to classroom
+  // Local Countdown Timer logic
   useEffect(() => {
-    if (!currentClass || !currentClass.location_polygon) return;
+    if (timeLeft === null || timeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 60000);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
+
+  // Location Tracking logic
+  useEffect(() => {
+    if (!currentClass || currentClass.is_lunch || !currentClass.location_polygon) return;
 
     const poly = typeof currentClass.location_polygon === "string"
       ? JSON.parse(currentClass.location_polygon)
       : currentClass.location_polygon;
 
-    // Use the first coordinate pair as the center point
     const [targetLat, targetLon] = poly[0];
 
     const watchId = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setUserCoords({ latitude, longitude });
-
-        const dist = calculateDistance(latitude, longitude, targetLat, targetLon);
+      (pos) => {
+        const dist = calculateDistance(pos.coords.latitude, pos.coords.longitude, targetLat, targetLon);
         setDistance(dist);
-        
-        // 15m threshold to match updated backend routes
-        setInRange(dist <= 15); 
+        setInRange(dist <= 15); // Sync with 15m backend radius
       },
-      (error) => console.error("GPS Error:", error),
-      { enableHighAccuracy: true, maximumAge: 0 }
+      (err) => console.error("GPS Error:", err),
+      { enableHighAccuracy: true }
     );
 
     return () => navigator.geolocation.clearWatch(watchId);
   }, [currentClass]);
 
-  if (loading) return <div style={styles.center}>Loading active session...</div>;
+  if (loading) return <div style={styles.center}>Loading Session...</div>;
 
   return (
     <div style={styles.container}>
       {currentClass ? (
         <>
-          <div style={styles.headerCard}>
+          {/* Header Section */}
+          <div style={currentClass.is_lunch ? styles.lunchHeader : styles.headerCard}>
             <h2 style={styles.subject}>{currentClass.subject}</h2>
-            <p style={styles.room}>Room: {currentClass.classroom}</p>
-          </div>
-
-          <div style={inRange ? styles.radarSuccess : styles.radarWarning}>
-            <p style={styles.radarTitle}>Distance Radar</p>
-            <h1 style={styles.distanceText}>
-              {distance !== null ? `${distance}m` : "--m"}
-            </h1>
-            <p>{inRange ? "✅ You are in Range" : "❌ Walk closer to Room"}</p>
-          </div>
-
-          {/* Debug coordinates (optional) */}
-          <p style={styles.debugText}>
-            GPS: {userCoords?.latitude.toFixed(5)}, {userCoords?.longitude.toFixed(5)}
-          </p>
-
-          {inRange ? (
-            <FaceCapture currentClass={currentClass} />
-          ) : (
-            <div style={styles.infoBox}>
-              Face verification is disabled until you are inside the classroom boundary.
+            <p style={styles.room}>
+              {currentClass.is_lunch ? "Time for a break!" : `Room: ${currentClass.classroom}`}
+            </p>
+            <div style={styles.timerBadge}>
+              ⏱️ {timeLeft} mins remaining
             </div>
+          </div>
+
+          {currentClass.is_lunch ? (
+            /* Lunch UI */
+            <div style={styles.lunchBox}>
+              <span style={{ fontSize: "50px" }}>🍛</span>
+              <h3>Lunch Break</h3>
+              <p>The system is currently on break. Verification is paused.</p>
+            </div>
+          ) : (
+            /* Attendance UI */
+            <>
+              <div style={inRange ? styles.radarSuccess : styles.radarWarning}>
+                <p style={styles.radarTitle}>Distance Radar</p>
+                <h1 style={styles.distanceText}>{distance !== null ? `${distance}m` : "Locating..."}</h1>
+                <p>{inRange ? "✅ You are in Range" : "❌ Walk closer to Room"}</p>
+              </div>
+
+              {inRange ? (
+                <FaceCapture currentClass={currentClass} />
+              ) : (
+                <div style={styles.infoBox}>
+                  Face verification is disabled until you are inside the classroom boundary.
+                </div>
+              )}
+            </>
           )}
         </>
       ) : (
         <div style={styles.noClass}>
-          <h2>No Active Class Found</h2>
-          <p>Please check your timetable or wait for the session to start.</p>
+          <h2>No Active Session</h2>
+          <p>Please check your timetable for the next class.</p>
         </div>
       )}
     </div>
@@ -116,16 +124,17 @@ export default function MarkAttendance() {
 }
 
 const styles = {
-  container: { padding: "20px", maxWidth: "500px", margin: "0 auto", textAlign: "center", fontFamily: "sans-serif" },
-  headerCard: { background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", color: "white", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
-  subject: { margin: 0, fontSize: "24px" },
-  room: { margin: "5px 0 0", opacity: 0.9 },
-  radarSuccess: { background: "rgba(76, 175, 80, 0.1)", border: "2px solid #4CAF50", padding: "20px", borderRadius: "15px", marginBottom: "20px", color: "#2e7d32" },
-  radarWarning: { background: "rgba(244, 67, 54, 0.1)", border: "2px solid #f44336", padding: "20px", borderRadius: "15px", marginBottom: "20px", color: "#c62828" },
-  radarTitle: { margin: 0, fontWeight: "bold", textTransform: "uppercase", fontSize: "14px" },
-  distanceText: { margin: "10px 0", fontSize: "48px" },
-  infoBox: { background: "#3f51b5", color: "white", padding: "15px", borderRadius: "10px", lineHeight: "1.5" },
-  noClass: { marginTop: "50px", color: "#666" },
-  debugText: { fontSize: "10px", color: "#999", marginBottom: "10px" },
-  center: { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }
+  container: { padding: "20px", maxWidth: "450px", margin: "0 auto", textAlign: "center" },
+  headerCard: { background: "linear-gradient(135deg, #667eea, #764ba2)", color: "white", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
+  lunchHeader: { background: "linear-gradient(135deg, #f6d365, #fda085)", color: "#5d4037", padding: "20px", borderRadius: "15px", marginBottom: "20px" },
+  subject: { margin: 0, fontSize: "22px" },
+  room: { margin: "5px 0", opacity: 0.9 },
+  timerBadge: { background: "rgba(0,0,0,0.2)", display: "inline-block", padding: "5px 12px", borderRadius: "20px", fontSize: "12px", marginTop: "10px" },
+  radarSuccess: { background: "#e8f5e9", border: "2px solid #4CAF50", padding: "20px", borderRadius: "15px", color: "#2e7d32", marginBottom: "20px" },
+  radarWarning: { background: "#ffebee", border: "2px solid #f44336", padding: "20px", borderRadius: "15px", color: "#c62828", marginBottom: "20px" },
+  distanceText: { fontSize: "48px", margin: "10px 0" },
+  lunchBox: { padding: "40px 20px", background: "#fffde7", borderRadius: "15px", border: "2px dashed #fbc02d" },
+  infoBox: { background: "#5c6bc0", color: "white", padding: "15px", borderRadius: "10px", fontSize: "14px" },
+  center: { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" },
+  noClass: { marginTop: "100px", color: "#999" }
 };
