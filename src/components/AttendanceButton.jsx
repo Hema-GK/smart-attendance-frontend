@@ -15,7 +15,7 @@ async (position)=>{
 
 const latitude = position.coords.latitude
 const longitude = position.coords.longitude
-
+alert(`Current Location: Lat ${latitude}, Lng ${longitude}`);
 console.log("Student Location:",latitude,longitude)
 
 try{
