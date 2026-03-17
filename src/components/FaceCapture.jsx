@@ -80,7 +80,7 @@ export default function FaceCapture({ currentClass }) {
       },
       { 
         enableHighAccuracy: true, 
-        timeout:15000,
+        timeout:10000,
         maximumAge: 0 // Force fresh location, critical for laptops
       }
     )
