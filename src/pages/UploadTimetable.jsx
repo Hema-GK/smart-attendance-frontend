@@ -1,59 +1,37 @@
-import { useState } from "react"
-import axios from "axios"
+import { useState } from "react";
 
-export default function UploadTimetable(){
+export default function UploadTimetable() {
+  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState("");
 
-  const [file, setFile] = useState(null)
-
-  const uploadTimetable = async () => {
-
-    if(!file){
-      alert("Please select a CSV file")
-      return
-    }
-
-    const formData = new FormData()
-    formData.append("file", file)
+  const handleUpload = async () => {
+    if (!file) return alert("Select a file first");
+    
+    setStatus("Uploading... please wait");
+    const formData = new FormData();
+    formData.append("file", file);
 
     try {
-      // Pointing to your verified live Railway backend
-      const backendUrl = "https://final-production-8aff.up.railway.app";
+      const res = await fetch("https://final-production-8aff.up.railway.app/admin/upload-timetable", {
+        method: "POST",
+        body: formData,
+      });
 
-      const res = await axios.post(
-        `${backendUrl}/admin/upload-timetable`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data"
-          }
-        }
-      )
-
-      alert(res.data.message || "Timetable uploaded successfully")
-
-    } catch(err) {
-      console.log("ERROR:", err)
-      // Standardizing error message to indicate connection status
-      alert("Upload failed: Server connection error")
+      const data = await res.json();
+      setStatus(data.message || "Success!");
+      alert("Uploaded successfully!");
+    } catch (err) {
+      setStatus("Error: Could not connect to server");
+      console.error(err);
     }
-
-  }
+  };
 
   return (
     <div className="card">
-      <h2>Upload Timetable CSV</h2>
-
-      <input
-        type="file"
-        accept=".csv"
-        onChange={(e) => setFile(e.target.files[0])}
-      />
-
-      <br/><br/>
-
-      <button onClick={uploadTimetable}>
-        Upload Timetable CSV
-      </button>
+      <h2>Upload Timetable</h2>
+      <input type="file" accept=".csv" onChange={(e) => setFile(e.target.files[0])} />
+      <button onClick={handleUpload} style={{marginTop: '10px'}}>Upload CSV</button>
+      <p style={{color: 'yellow'}}>{status}</p>
     </div>
-  )
+  );
 }
