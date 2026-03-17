@@ -2,7 +2,6 @@ import { useState } from "react";
 
 export default function UploadTimetable() {
   const [file, setFile] = useState(null);
-  const [semester, setSemester] = useState("5"); // Default semester
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -17,10 +16,13 @@ export default function UploadTimetable() {
     
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("semester", semester); // Required by your backend Form(...)
+    
+    // We send a placeholder because the FastAPI route expects the 'semester' argument,
+    // but your Python service is now configured to pull the real value from the CSV.
+    formData.append("semester", "CSV_DATA"); 
 
     try {
-      // Corrected URL: Must match the prefix and route in your Python file
+      // Points to your active Railway deployment
       const res = await fetch("https://final-production-8aff.up.railway.app/timetable/upload", {
         method: "POST",
         body: formData,
@@ -29,8 +31,9 @@ export default function UploadTimetable() {
       const data = await res.json();
 
       if (res.ok) {
-        setStatus("Success: Timetable CSV uploaded!");
+        setStatus("Success: Timetable uploaded!");
         alert("Timetable CSV uploaded successfully ✅");
+        setFile(null); // Clear the input after success
       } else {
         setStatus(`Error: ${data.detail || "Upload failed"}`);
         alert(data.detail || "Upload failed");
@@ -38,43 +41,38 @@ export default function UploadTimetable() {
     } catch (err) {
       console.error("CONNECTION ERROR:", err);
       setStatus("Error: Cannot reach the server.");
-      alert("Server connection failed. Make sure your Railway backend is live.");
+      alert("Server connection failed. Make sure your Railway backend is online.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="card" style={{ padding: '20px', textAlign: 'center' }}>
-      <h2>Upload Timetable CSV</h2>
+    <div className="card" style={styles.card}>
+      <h2 style={styles.title}>Upload Timetable CSV</h2>
+      <p style={styles.subtitle}>Ensure columns match: section, semester, day, start_time, end_time, subject, teacher_id, classroom, is_lunch</p>
       
-      <div style={{ marginBottom: "15px", textAlign: "left" }}>
-        <label>Select Semester: </label>
-        <select value={semester} onChange={(e) => setSemester(e.target.value)}>
-          {[1,2,3,4,5,6,7,8].map(num => <option key={num} value={num}>{num}</option>)}
-        </select>
+      <div style={styles.uploadContainer}>
+        <input 
+          type="file" 
+          accept=".csv" 
+          onChange={(e) => setFile(e.target.files[0])} 
+          style={styles.fileInput}
+        />
+        
+        <button 
+          onClick={handleUpload} 
+          disabled={loading}
+          style={loading ? {...styles.button, opacity: 0.6} : styles.button}
+        >
+          {loading ? "Processing..." : "Upload Timetable"}
+        </button>
       </div>
-
-      <input 
-        type="file" 
-        accept=".csv" 
-        onChange={(e) => setFile(e.target.files[0])} 
-        style={{ marginBottom: "15px" }}
-      />
-      
-      <button 
-        onClick={handleUpload} 
-        disabled={loading}
-        style={{ width: "100%", padding: "10px", backgroundColor: "#ff4b5c", color: "white", border: "none", cursor: "pointer" }}
-      >
-        {loading ? "Processing..." : "Upload Timetable CSV"}
-      </button>
 
       {status && (
         <p style={{ 
-          marginTop: "15px", 
-          color: status.includes("Error") ? "#ff4d4d" : "#4aff4a",
-          fontWeight: "bold"
+          ...styles.statusText, 
+          color: status.includes("Error") ? "#ff4d4d" : "#4aff4a" 
         }}>
           {status}
         </p>
@@ -82,3 +80,36 @@ export default function UploadTimetable() {
     </div>
   );
 }
+
+const styles = {
+  card: {
+    padding: "30px",
+    background: "rgba(255, 255, 255, 0.05)",
+    borderRadius: "15px",
+    textAlign: "center",
+    maxWidth: "500px",
+    margin: "40px auto",
+    boxShadow: "0 8px 32px 0 rgba(31, 38, 135, 0.37)",
+    border: "1px solid rgba(255, 255, 255, 0.18)"
+  },
+  title: { color: "#fff", marginBottom: "10px" },
+  subtitle: { color: "#aaa", fontSize: "12px", marginBottom: "20px" },
+  uploadContainer: { display: "flex", flexDirection: "column", gap: "15px" },
+  fileInput: { 
+    color: "#fff", 
+    padding: "10px", 
+    border: "1px dashed #555", 
+    borderRadius: "5px" 
+  },
+  button: { 
+    padding: "12px", 
+    backgroundColor: "#ff4b5c", 
+    color: "white", 
+    border: "none", 
+    borderRadius: "5px", 
+    cursor: "pointer",
+    fontWeight: "bold",
+    transition: "0.3s"
+  },
+  statusText: { marginTop: "20px", fontSize: "14px", fontWeight: "bold" }
+};
