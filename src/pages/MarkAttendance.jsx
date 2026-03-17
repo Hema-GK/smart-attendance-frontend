@@ -10,21 +10,22 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
-export default function MarkAttendance({ studentId }) {
+export default function MarkAttendance() {
   const videoRef = useRef(null);
   const [currentClass, setCurrentClass] = useState(null);
   const [location, setLocation] = useState({ lat: null, lon: null });
   const [isInside, setIsInside] = useState(false);
+  const [studentData, setStudentData] = useState(null); // Data after face capture
   const [loading, setLoading] = useState(false);
-  const [matchResult, setMatchResult] = useState(null);
+  const [step, setStep] = useState("capture"); // 'capture' or 'confirm'
 
   useEffect(() => {
-    // Start Camera
+    // 1. Start Camera Preview
     navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
       if (videoRef.current) videoRef.current.srcObject = stream;
     });
 
-    // Get Class Data
+    // 2. Get Class Info
     fetch("https://final-production-8aff.up.railway.app/timetable/current-class")
       .then(res => res.json())
       .then(data => {
@@ -32,6 +33,7 @@ export default function MarkAttendance({ studentId }) {
       });
   }, []);
 
+  // 3. Silent Radius Logic
   useEffect(() => {
     if (!navigator.geolocation) return;
     const watchId = navigator.geolocation.watchPosition((pos) => {
@@ -41,93 +43,134 @@ export default function MarkAttendance({ studentId }) {
 
       if (currentClass?.polygon) {
         const coords = JSON.parse(currentClass.polygon);
-        const [cLat, cLon] = coords[0];
-        const dist = calculateDistance(uLat, uLon, cLat, cLon);
-        setIsInside(dist <= 15.0); 
+        const dist = calculateDistance(uLat, uLon, coords[0][0], coords[0][1]);
+        setIsInside(dist <= 15.0);
       }
     }, null, { enableHighAccuracy: true });
     return () => navigator.geolocation.clearWatch(watchId);
   }, [currentClass]);
 
-  const handleCapture = async () => {
+  // STEP 1: Capture Face and get Student Info
+  const handleFaceRecognition = async () => {
     setLoading(true);
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
     canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
-    const imageBase64 = canvas.toDataURL("image/jpeg").split(",")[1];
+    const imageBlob = canvas.toDataURL("image/jpeg");
 
+    try {
+      // Endpoint to only recognize face (without marking attendance yet)
+      const res = await fetch("https://final-production-8aff.up.railway.app/attendance/recognize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imageBlob }),
+      });
+
+      const result = await res.json();
+      if (result.status === "success") {
+        setStudentData(result.student_info);
+        setStep("confirm"); // Move to confirmation step
+      } else {
+        alert("Face not recognized. Please try again.");
+      }
+    } catch (err) {
+      alert("Error connecting to recognition service.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // STEP 2: Final Attendance Submission (with distance check)
+  const handleConfirmAttendance = async () => {
+    if (!isInside) {
+      alert("Location Error: You must be inside the classroom to confirm.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const res = await fetch("https://final-production-8aff.up.railway.app/attendance/mark", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          student_id: studentId,
+          student_id: studentData.id,
           timetable_id: currentClass.id,
           latitude: location.lat,
           longitude: location.lon,
-          image: imageBase64
         }),
       });
+
       const result = await res.json();
-      setMatchResult(result);
       alert(result.message);
+      if (result.status === "success") setStep("complete");
     } catch (err) {
-      alert("Error marking attendance.");
-    } finally { setLoading(false); }
+      alert("Final submission failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  if (!currentClass) return <div className="status">Loading class...</div>;
+  if (!currentClass) return <div className="p-4 text-white">Searching for active class...</div>;
 
   return (
-    <div className="attendance-card" style={{ textAlign: 'center', color: 'white' }}>
+    <div className="attendance-workflow" style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
       <h2>{currentClass.subject}</h2>
-      <p style={{ opacity: 0.7 }}>{currentClass.classroom}</p>
+      
+      <div className="media-container" style={{ position: 'relative', margin: '20px auto', maxWidth: '400px' }}>
+        {step === "capture" && (
+          <video ref={videoRef} autoPlay style={{ width: '100%', borderRadius: '15px', border: '3px solid #555' }} />
+        )}
 
-      <div className="video-wrapper" style={{ position: 'relative', margin: '20px auto', maxWidth: '400px' }}>
-        <video 
-          ref={videoRef} 
-          autoPlay 
-          playsInline 
-          style={{ 
-            width: '100%', 
-            borderRadius: '15px', 
-            border: isInside ? '4px solid #4aff4a' : '4px solid #ff4d4d' 
-          }} 
-        />
-        {matchResult && (
-          <div style={{
-            position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(0,0,0,0.8)', padding: '8px 20px', borderRadius: '20px',
-            color: matchResult.status === 'success' ? '#4aff4a' : '#ff4d4d'
-          }}>
-            {matchResult.status === 'success' ? "Match Found" : "Match Failed"}
+        {step === "confirm" && studentData && (
+          <div className="confirmation-card" style={cardStyle}>
+            <h3>Verify Your Details</h3>
+            <p><strong>Name:</strong> {studentData.name}</p>
+            <p><strong>USN:</strong> {studentData.usn}</p>
+            <p><strong>Section:</strong> {studentData.section}</p>
+            <p style={{ color: isInside ? '#4aff4a' : '#ff4d4d' }}>
+               {isInside ? "✔ Location Verified" : "✖ Move into Classroom"}
+            </p>
           </div>
         )}
       </div>
 
-      <div style={{ marginBottom: '20px' }}>
-        {isInside ? (
-          <span style={{ color: '#4aff4a' }}>✔ Inside Classroom Range</span>
-        ) : (
-          <span style={{ color: '#ff4d4d' }}>✖ Outside Range</span>
+      <div className="action-area">
+        {step === "capture" && (
+          <button onClick={handleFaceRecognition} disabled={loading} style={btnStyle("#ff4b5c")}>
+            {loading ? "Recognizing..." : "Capture Face"}
+          </button>
         )}
-      </div>
 
-      <button 
-        onClick={handleCapture} 
-        disabled={!isInside || loading}
-        className="capture-btn"
-        style={{
-          padding: '15px 40px',
-          borderRadius: '30px',
-          backgroundColor: isInside ? '#ff4b5c' : '#444',
-          cursor: isInside ? 'pointer' : 'not-allowed',
-          border: 'none', color: 'white', fontWeight: 'bold'
-        }}
-      >
-        {loading ? "Matching Face..." : "Capture & Mark"}
-      </button>
+        {step === "confirm" && (
+          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+            <button onClick={() => setStep("capture")} style={btnStyle("#555")}>Retake</button>
+            <button onClick={handleConfirmAttendance} disabled={loading || !isInside} style={btnStyle("#4aff4a")}>
+              {loading ? "Submitting..." : "Confirm Attendance"}
+            </button>
+          </div>
+        )}
+
+        {step === "complete" && <h3 style={{ color: '#4aff4a' }}>Attendance Marked Successfully! ✅</h3>}
+      </div>
     </div>
   );
 }
+
+const cardStyle = {
+  background: 'rgba(255,255,255,0.1)',
+  padding: '20px',
+  borderRadius: '15px',
+  border: '1px solid #4aff4a',
+  textAlign: 'left'
+};
+
+const btnStyle = (color) => ({
+  padding: '12px 25px',
+  backgroundColor: color,
+  color: color === "#4aff4a" ? "black" : "white",
+  border: 'none',
+  borderRadius: '8px',
+  fontWeight: 'bold',
+  cursor: 'pointer'
+});
