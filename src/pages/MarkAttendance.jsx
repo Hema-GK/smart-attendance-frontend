@@ -1,100 +1,52 @@
 import { useState, useEffect, useRef } from "react";
 
-const calculateDistance = (lat1, lon1, lat2, lon2) => {
-  const R = 6371000;
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
 export default function MarkAttendance() {
   const videoRef = useRef(null);
   const [currentClass, setCurrentClass] = useState(null);
   const [location, setLocation] = useState({ lat: null, lon: null });
-  const [isInside, setIsInside] = useState(false);
-  const [studentData, setStudentData] = useState(null); // Data after face capture
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState("capture"); // 'capture' or 'confirm'
+  const [attendanceDetails, setAttendanceDetails] = useState(null);
 
   useEffect(() => {
-    // 1. Start Camera Preview
+    // 1. Start Camera Preview immediately
     navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
       if (videoRef.current) videoRef.current.srcObject = stream;
     });
 
-    // 2. Get Class Info
+    // 2. Fetch the Active Class details
     fetch("https://final-production-8aff.up.railway.app/timetable/current-class")
       .then(res => res.json())
       .then(data => {
         if (data.status === "Class Active") setCurrentClass(data.class);
       });
+
+    // 3. Get GPS coordinates silently in the background
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition((pos) => {
+        setLocation({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+      }, null, { enableHighAccuracy: true });
+    }
   }, []);
 
-  // 3. Silent Radius Logic
-  useEffect(() => {
-    if (!navigator.geolocation) return;
-    const watchId = navigator.geolocation.watchPosition((pos) => {
-      const uLat = pos.coords.latitude;
-      const uLon = pos.coords.longitude;
-      setLocation({ lat: uLat, lon: uLon });
-
-      if (currentClass?.polygon) {
-        const coords = JSON.parse(currentClass.polygon);
-        const dist = calculateDistance(uLat, uLon, coords[0][0], coords[0][1]);
-        setIsInside(dist <= 15.0);
-      }
-    }, null, { enableHighAccuracy: true });
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, [currentClass]);
-
-  // STEP 1: Capture Face and get Student Info
-  const handleFaceRecognition = async () => {
+  const handleInstantAttendance = async () => {
     setLoading(true);
+    
+    // Capture the frame from the video
     const canvas = document.createElement("canvas");
     canvas.width = videoRef.current.videoWidth;
     canvas.height = videoRef.current.videoHeight;
-    canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
-    const imageBlob = canvas.toDataURL("image/jpeg");
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(videoRef.current, 0, 0);
+    
+    // Convert to Base64 (High quality for recognition)
+    const imageBlob = canvas.toDataURL("image/jpeg", 0.9);
 
     try {
-      // Endpoint to only recognize face (without marking attendance yet)
-      const res = await fetch("https://final-production-8aff.up.railway.app/attendance/recognize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: imageBlob }),
-      });
-
-      const result = await res.json();
-      if (result.status === "success") {
-        setStudentData(result.student_info);
-        setStep("confirm"); // Move to confirmation step
-      } else {
-        alert("Face not recognized. Please try again.");
-      }
-    } catch (err) {
-      alert("Error connecting to recognition service.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // STEP 2: Final Attendance Submission (with distance check)
-  const handleConfirmAttendance = async () => {
-    if (!isInside) {
-      alert("Location Error: You must be inside the classroom to confirm.");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/attendance/mark", {
+      const res = await fetch("https://final-production-8aff.up.railway.app/attendance/mark-instant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          student_id: studentData.id,
+          image: imageBlob,
           timetable_id: currentClass.id,
           latitude: location.lat,
           longitude: location.lon,
@@ -102,75 +54,107 @@ export default function MarkAttendance() {
       });
 
       const result = await res.json();
-      alert(result.message);
-      if (result.status === "success") setStep("complete");
+
+      if (result.status === "success") {
+        setAttendanceDetails(result.details);
+        alert("Success: Attendance recorded successfully! ✅");
+      } else {
+        // This will display "Outside Range" or "Face not recognized" error messages
+        alert(result.message);
+      }
     } catch (err) {
-      alert("Final submission failed.");
+      alert("Server connection error. Please check your internet.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (!currentClass) return <div className="p-4 text-white">Searching for active class...</div>;
+  if (!currentClass) return <div style={{padding: '50px', color: 'white', textAlign: 'center'}}>Checking Timetable...</div>;
 
   return (
-    <div className="attendance-workflow" style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
-      <h2>{currentClass.subject}</h2>
+    <div style={{ textAlign: 'center', color: 'white', padding: '20px', fontFamily: 'sans-serif' }}>
       
-      <div className="media-container" style={{ position: 'relative', margin: '20px auto', maxWidth: '400px' }}>
-        {step === "capture" && (
-          <video ref={videoRef} autoPlay style={{ width: '100%', borderRadius: '15px', border: '3px solid #555' }} />
-        )}
+      {/* Subject Title at the top (Old Style) */}
+      <h2 style={{ fontSize: '32px', marginTop: '40px', color: '#ff4b5c' }}>
+        {currentClass.subject}
+      </h2>
 
-        {step === "confirm" && studentData && (
-          <div className="confirmation-card" style={cardStyle}>
-            <h3>Verify Your Details</h3>
-            <p><strong>Name:</strong> {studentData.name}</p>
-            <p><strong>USN:</strong> {studentData.usn}</p>
-            <p><strong>Section:</strong> {studentData.section}</p>
-            <p style={{ color: isInside ? '#4aff4a' : '#ff4d4d' }}>
-               {isInside ? "✔ Location Verified" : "✖ Move into Classroom"}
-            </p>
-          </div>
-        )}
-      </div>
+      <div style={{ margin: '30px auto', maxWidth: '400px' }}>
+        {!attendanceDetails ? (
+          <>
+            {/* Simple Camera Frame */}
+            <div style={{ position: 'relative', border: '4px solid rgba(255,255,255,0.2)', borderRadius: '20px', overflow: 'hidden' }}>
+              <video ref={videoRef} autoPlay style={{ width: '100%', display: 'block' }} />
+            </div>
 
-      <div className="action-area">
-        {step === "capture" && (
-          <button onClick={handleFaceRecognition} disabled={loading} style={btnStyle("#ff4b5c")}>
-            {loading ? "Recognizing..." : "Capture Face"}
-          </button>
-        )}
-
-        {step === "confirm" && (
-          <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-            <button onClick={() => setStep("capture")} style={btnStyle("#555")}>Retake</button>
-            <button onClick={handleConfirmAttendance} disabled={loading || !isInside} style={btnStyle("#4aff4a")}>
-              {loading ? "Submitting..." : "Confirm Attendance"}
+            {/* Simple Capture Button */}
+            <button 
+              onClick={handleInstantAttendance} 
+              disabled={loading} 
+              style={btnStyle}
+            >
+              {loading ? "Processing..." : "Capture Face"}
+            </button>
+          </>
+        ) : (
+          /* Success Card - Displayed after marking (Old Style) */
+          <div style={successCardStyle}>
+            <h3 style={{ color: '#4aff4a', textAlign: 'center', marginBottom: '20px' }}>Verified Details</h3>
+            <p><strong>Name:</strong> {attendanceDetails.name}</p>
+            <p><strong>Subject:</strong> {attendanceDetails.subject}</p>
+            <p><strong>Classroom:</strong> {attendanceDetails.classroom}</p>
+            <p><strong>Teacher:</strong> {attendanceDetails.teacher}</p>
+            
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <span style={{ backgroundColor: '#4aff4a', color: '#000', padding: '5px 15px', borderRadius: '5px', fontWeight: 'bold' }}>
+                PRESENT ✅
+              </span>
+            </div>
+            
+            <button 
+              onClick={() => window.location.reload()} 
+              style={doneBtnStyle}
+            >
+              Done
             </button>
           </div>
         )}
-
-        {step === "complete" && <h3 style={{ color: '#4aff4a' }}>Attendance Marked Successfully! ✅</h3>}
       </div>
     </div>
   );
 }
 
-const cardStyle = {
-  background: 'rgba(255,255,255,0.1)',
-  padding: '20px',
-  borderRadius: '15px',
-  border: '1px solid #4aff4a',
-  textAlign: 'left'
+// STYLING
+const successCardStyle = {
+  background: 'rgba(255,255,255,0.05)',
+  padding: '30px',
+  borderRadius: '20px',
+  border: '1px solid rgba(255,255,255,0.2)',
+  textAlign: 'left',
+  lineHeight: '2'
 };
 
-const btnStyle = (color) => ({
-  padding: '12px 25px',
-  backgroundColor: color,
-  color: color === "#4aff4a" ? "black" : "white",
+const btnStyle = {
+  width: '100%',
+  marginTop: '25px',
+  padding: '15px',
+  backgroundColor: '#ff4b5c',
+  color: 'white',
   border: 'none',
-  borderRadius: '8px',
+  borderRadius: '12px',
+  fontSize: '18px',
   fontWeight: 'bold',
+  cursor: 'pointer',
+  boxShadow: '0 4px 15px rgba(255, 75, 92, 0.3)'
+};
+
+const doneBtnStyle = {
+  width: '100%',
+  marginTop: '20px',
+  background: 'none',
+  border: '1px solid white',
+  color: 'white',
+  padding: '10px',
+  borderRadius: '8px',
   cursor: 'pointer'
-});
+};
