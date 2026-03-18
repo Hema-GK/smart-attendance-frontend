@@ -5,26 +5,36 @@ const Login = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ usn: "", password: "" });
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(credentials)
-      });
-      const data = await res.json();
+const handleLogin = async (e) => {
+  e.preventDefault();
+  
+  // Debug: See what you are sending
+  console.log("Sending to backend:", credentials);
 
-      if (data.status === "success") {
-        localStorage.setItem("student_id", data.student_id);
-        navigate("/student/dashboard");
-      } else {
-        alert(data.message || "Invalid USN or Password");
-      }
-    } catch (err) {
-      console.error("Login Error:", err);
+  try {
+    const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        usn: credentials.usn.trim(), // Trim spaces here too
+        password: credentials.password.trim()
+      })
+    });
+    
+    const data = await res.json();
+    console.log("Backend response:", data); // Debug: See the actual error message
+
+    if (data.status === "success") {
+      localStorage.setItem("student_id", data.student_id);
+      navigate("/student/dashboard");
+    } else {
+      // This will now show the specific error from the backend
+      alert(data.message); 
     }
-  };
+  } catch (err) {
+    alert("Server is down or CORS error");
+  }
+};
 
   // --- MISSING RETURN BLOCK ADDED HERE ---
   return (
