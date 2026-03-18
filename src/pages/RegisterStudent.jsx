@@ -15,12 +15,28 @@ const RegisterStudent = () => {
     }
   };
 
-  const handleRegister = () => {
-    console.log("Registering:", formData);
-    // After registration logic, send user to login
-    alert("Registration Successful!");
-    navigate("/student/login");
-  };
+const handleRegister = async (e) => {
+  e.preventDefault();
+  try {
+    // Ensure the URL matches the backend prefix exactly
+    const res = await fetch("https://final-production-8aff.up.railway.app/students/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData) // Ensure formData has 'usn', 'password', etc.
+    });
+
+    const data = await res.json();
+    
+    if (data.status === "success") {
+      alert("Registration Successful! Now you can login.");
+      navigate("/student/login");
+    } else {
+      alert(data.message || "Registration failed");
+    }
+  } catch (err) {
+    alert("Could not connect to server");
+  }
+};
 
   return (
     <div style={containerStyle}>
