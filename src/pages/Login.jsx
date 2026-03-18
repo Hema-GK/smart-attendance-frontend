@@ -7,9 +7,9 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    
     try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
+      // FIX: Changed "student" to "students" to match backend prefix
+      const res = await fetch("https://final-production-8aff.up.railway.app/students/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -18,31 +18,18 @@ const Login = () => {
         })
       });
 
-      // Check if the server actually responded with a 200 OK
-      if (!res.ok) {
-        const errorData = await res.json();
-        alert(`Server Error: ${errorData.detail || "Login failed"}`);
-        return;
-      }
-
       const data = await res.json();
-      console.log("Backend Response:", data);
 
       if (data.status === "success") {
-        // Ensure student_id is present before moving forward
-        if (data.student_id) {
-          localStorage.setItem("student_id", data.student_id);
-          navigate("/student/dashboard");
-        } else {
-          alert("Login successful but no Student ID received.");
-        }
+        localStorage.setItem("student_id", data.student_id);
+        navigate("/student/dashboard");
       } else {
-        // Fallback for if 'message' is missing in the backend response
-        alert(data.message || "Invalid USN or Password (Backend error)");
+        // FIX: Fallback to prevent "undefined" alert
+        alert(data.message || "Invalid USN or Password");
       }
     } catch (err) {
-      console.error("Connection Error:", err);
-      alert("Cannot connect to the server. Please check your internet or if the backend is running.");
+      console.error("Login Error:", err);
+      alert("Connection failed. Check your internet or backend status.");
     }
   };
 
@@ -76,7 +63,6 @@ const Login = () => {
   );
 };
 
-// --- STYLES ---
 const containerStyle = { textAlign: 'center', color: 'white', padding: '80px 20px', minHeight: '100vh', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', display: 'flex', justifyContent: 'center', alignItems: 'center' };
 const formCard = { background: 'rgba(255,255,255,0.1)', padding: '40px', borderRadius: '20px', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)', width: '100%', maxWidth: '400px' };
 const inputStyle = { width: '100%', padding: '15px', margin: '10px 0', borderRadius: '10px', border: 'none', background: 'rgba(255,255,255,0.2)', color: 'white', outline: 'none' };
