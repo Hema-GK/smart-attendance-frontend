@@ -6,151 +6,117 @@ export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null)
   const [capturedImage, setCapturedImage] = useState(null)
   const [student, setStudent] = useState(null)
-  const [recognizing, setRecognizing] = useState(false)
-  const [marking, setMarking] = useState(false)
+  const [confirmed, setConfirmed] = useState(false)
 
-  const resetCamera = () => {
+  const startCamera = () => {
     setCapturedImage(null)
     setStudent(null)
+    setConfirmed(false)
   }
 
   const captureFace = async () => {
     const image = webcamRef.current.getScreenshot()
-    if (!image) return alert("Camera not ready")
-
     setCapturedImage(image)
-    setRecognizing(true)
 
     try {
       const res = await API.post("/face/recognize", { image })
       if (res.data.status === "Face recognized") {
         setStudent(res.data.student)
       } else {
-        alert(res.data.status || "Face not recognized")
-        setCapturedImage(null)
+        alert(res.data.status)
       }
     } catch (err) {
-      console.error(err)
-      alert("Face recognition service is offline")
-    } finally {
-      setRecognizing(false)
+      console.log(err)
+      alert("Face recognition failed")
     }
   }
 
   const markAttendance = async () => {
-    if (!student) return alert("Please capture your face first")
-    if (!currentClass) return alert("No active class session found")
+    if (!student) {
+      alert("Student not detected")
+      return
+    }
 
-    setMarking(true)
+    if (!currentClass) {
+      alert("No class running right now")
+      return
+    }
 
+    /* STEP 5: USE HIGH ACCURACY GPS FOR RADIUS CHECK */
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const { latitude, longitude } = position.coords
+        const lat = position.coords.latitude
+        const lon = position.coords.longitude
 
         try {
           const res = await API.post("/attendance/mark", {
             student_id: student.id,
-            timetable_id: currentClass.id, 
-            latitude: latitude,
-            longitude: longitude
+            timetable_id: currentClass.id,
+            latitude: lat,
+            longitude: lon
           })
 
-          // Robust check for response data
-          if (res && res.data) {
-            if (res.data.status === "success") {
-              alert("✅ Success: " + res.data.message)
-              resetCamera()
-            } else {
-              alert("❌ Error: " + res.data.message)
-            }
+          if (res.data.status === "success") {
+            alert("Attendance marked successfully ✅")
           } else {
-            alert("❌ Server returned an empty response.")
+            alert(res.data.message)
           }
         } catch (err) {
-          console.error("API Error:", err)
-          const errorMsg = err.response?.data?.message || "Failed to submit attendance"
-          alert("❌ " + errorMsg)
-        } finally {
-          setMarking(false)
+          console.log(err)
+          alert("Attendance failed")
         }
       },
       (error) => {
-        setMarking(false)
-        alert("Location error: " + error.message + ". Please enable High-Accuracy GPS/Location.")
+        console.log(error)
+        alert("Location access denied or unavailable")
       },
-      { 
-        enableHighAccuracy: true, 
-        timeout:10000,
-        maximumAge: 0 // Force fresh location, critical for laptops
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
       }
     )
   }
 
   return (
-    <div style={styles.container}>
-      <div style={styles.webcamWrapper}>
-        {!capturedImage ? (
-          <Webcam
-            ref={webcamRef}
-            audio={false}
-            screenshotFormat="image/jpeg"
-            videoConstraints={{ facingMode: "user" }}
-            style={styles.webcam}
-          />
-        ) : (
-          <img src={capturedImage} alt="Captured" style={styles.webcam} />
-        )}
+    <div className="card">
+      <h2>Face Attendance</h2>
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        screenshotFormat="image/jpeg"
+        width={320}
+        videoConstraints={{ facingMode: "user" }}
+      />
+      <div style={{ marginTop: "10px" }}>
+        <button className="btn" onClick={startCamera}>Start Camera</button>
+        <button className="btn" onClick={captureFace}>Capture Face</button>
       </div>
 
-      <div style={styles.controls}>
-        {!capturedImage ? (
-          <button onClick={captureFace} disabled={recognizing} style={styles.btnPrimary}>
-            {recognizing ? "Recognizing..." : "Verify Face"}
-          </button>
-        ) : (
-          <button onClick={resetCamera} style={styles.btnSecondary}>
-            Retake Photo
-          </button>
-        )}
-      </div>
+      {capturedImage && (
+        <div style={{ marginTop: "15px" }}>
+          <h4>Captured Image</h4>
+          <img src={capturedImage} width="180" style={{ borderRadius: "10px" }} alt="Captured" />
+        </div>
+      )}
 
       {student && (
-        <div style={styles.resultCard}>
-          <h3>Welcome, {student.name}</h3>
-          <p>USN: {student.usn} | Section: {student.section}</p>
-          <button 
-            onClick={markAttendance} 
-            disabled={marking} 
-            style={marking ? styles.btnDisabled : styles.btnSuccess}
-          >
-            {marking ? "Processing..." : "Confirm Attendance"}
-          </button>
+        <div className="studentCard" style={{ marginTop: "15px", padding: "10px", border: "1px solid #ccc" }}>
+          <h3>Student Detected</h3>
+          <p><b>Name:</b> {student.name}</p>
+          <p><b>USN:</b> {student.usn}</p>
+          <p><b>Section:</b> {student.section}</p>
+          {!confirmed && (
+            <button className="btn" onClick={() => setConfirmed(true)}>Yes, it's me</button>
+          )}
         </div>
+      )}
+
+      {confirmed && (
+        <button className="btn" style={{ backgroundColor: "#28a745", marginTop: "15px" }} onClick={markAttendance}>
+          Mark Attendance
+        </button>
       )}
     </div>
   )
-}
-
-const styles = {
-  container: { textAlign: "center", width: "100%", maxWidth: "400px", margin: "0 auto" },
-  webcamWrapper: {
-    borderRadius: "15px",
-    overflow: "hidden",
-    boxShadow: "0 4px 15px rgba(0,0,0,0.2)",
-    marginBottom: "20px",
-    backgroundColor: "#000"
-  },
-  webcam: { width: "100%", display: "block" },
-  controls: { marginBottom: "20px" },
-  resultCard: {
-    background: "white",
-    color: "#333",
-    padding: "20px",
-    borderRadius: "12px",
-    boxShadow: "0 10px 25px rgba(0,0,0,0.1)"
-  },
-  btnPrimary: { padding: "12px 24px", background: "#667eea", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", fontWeight: "bold" },
-  btnSecondary: { padding: "10px 20px", background: "#f44336", color: "white", border: "none", borderRadius: "8px", cursor: "pointer" },
-  btnSuccess: { width: "100%", padding: "12px", background: "#4CAF50", color: "white", border: "none", borderRadius: "8px", cursor: "pointer", marginTop: "10px", fontWeight: "bold" },
-  btnDisabled: { width: "100%", padding: "12px", background: "#ccc", color: "white", border: "none", borderRadius: "8px", cursor: "not-allowed", marginTop: "10px" }
 }
