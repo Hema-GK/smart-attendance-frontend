@@ -1,97 +1,36 @@
 import { useState, useRef } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios"; 
+import { Link } from "react-router-dom";
 
-export default function RegisterStudent() {
-  const navigate = useNavigate();
+export default function StudentRegistration() {
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const [formData, setFormData] = useState({ name: "", usn: "", password: "", semester: "", section: "" });
 
-  const [name, setName] = useState("");
-  const [usn, setUsn] = useState("");
-  const [password, setPassword] = useState("");
-  const [semester, setSemester] = useState(""); 
-  const [section, setSection] = useState("");
-  const [image, setImage] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  const startCamera = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoRef.current.srcObject = stream;
-    } catch (error) {
-      alert("Camera access denied");
-    }
-  };
-
-  const captureImage = () => {
-    const canvas = canvasRef.current;
-    const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(video, 0, 0);
-    // CRITICAL: Increased quality from 0.4 to 0.9 for facial recognition accuracy
-    const captured = canvas.toDataURL("image/jpeg", 0.9);
-    setImage(captured);
-    video.pause();
-  };
-
-  const registerStudent = async () => {
-    if (!image || !name || !usn || !semester) {
-      alert("Please fill all fields and capture your face");
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const backendUrl = "https://final-production-8aff.up.railway.app";
-      const response = await axios.post(`${backendUrl}/students/register`, {
-        name,
-        usn,
-        password,
-        semester: parseInt(semester),
-        section,
-        image
-      });
-
-      if (response.data.status === "success" || response.data.status.includes("successfully")) {
-        alert("Student Registered Successfully ✅");
-        navigate("/student/login");
-      } else {
-        alert(response.data.status); // Shows "Multiple faces detected" or "No face detected"
-      }
-    } catch (err) {
-      console.error("REGISTRATION ERROR:", err);
-      alert("Registration failed: Server error or connection issue.");
-    } finally {
-      setLoading(false);
-    }
+  const startCamera = () => {
+    navigator.mediaDevices.getUserMedia({ video: true }).then(s => videoRef.current.srcObject = s);
   };
 
   return (
-    <div className="card" style={{ padding: '20px', maxWidth: '400px', margin: 'auto' }}>
+    <div className="registration-form" style={{ textAlign: 'center', color: 'white', padding: '20px' }}>
       <h2>Student Registration</h2>
-      <input placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} style={inputStyle} />
-      <input placeholder="USN" value={usn} onChange={(e) => setUsn(e.target.value)} style={inputStyle} />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} style={inputStyle} />
-      <input placeholder="Semester (e.g. 5)" value={semester} onChange={(e) => setSemester(e.target.value)} style={inputStyle} />
-      <input placeholder="Section" value={section} onChange={(e) => setSection(e.target.value)} style={inputStyle} />
-
-      <video ref={videoRef} autoPlay width="100%" style={{ borderRadius: "10px", marginTop: "10px" }}></video>
-      <canvas ref={canvasRef} style={{ display: "none" }}></canvas>
-
-      <div style={{ marginTop: '10px' }}>
-        <button onClick={startCamera} className="btn">Start Camera</button>
-        <button onClick={captureImage} className="btn" style={{ marginLeft: '10px' }}>Capture</button>
+      <input type="text" placeholder="Name" className="reg-input" onChange={e => setFormData({...formData, name: e.target.value})} />
+      <input type="text" placeholder="USN" className="reg-input" onChange={e => setFormData({...formData, usn: e.target.value})} />
+      <input type="password" placeholder="Password" className="reg-input" onChange={e => setFormData({...formData, password: e.target.value})} />
+      <input type="text" placeholder="Semester (e.g. 5)" className="reg-input" onChange={e => setFormData({...formData, semester: e.target.value})} />
+      <input type="text" placeholder="Section" className="reg-input" onChange={e => setFormData({...formData, section: e.target.value})} />
+      
+      <div className="preview-box" style={{ margin: '15px auto', width: '300px', height: '200px', backgroundColor: '#222', borderRadius: '10px' }}>
+        <video ref={videoRef} autoPlay style={{ width: '100%', borderRadius: '10px' }} />
       </div>
 
-      <button className="btn register" onClick={registerStudent} disabled={loading} style={regBtnStyle}>
-        {loading ? "Processing..." : "Register Student"}
-      </button>
+      <button onClick={startCamera} style={btnStyle("#ff4b5c")}>Start Camera</button>
+      <button className="btn-reg" style={btnStyle("#ff4b5c")}>Capture & Register</button>
+
+      {/* Restored Login Link */}
+      <p style={{ marginTop: '20px' }}>
+        Already registered? <Link to="/login" style={{ color: '#ff4b5c' }}>Login</Link>
+      </p>
     </div>
   );
 }
 
-const inputStyle = { display: 'block', width: '100%', marginBottom: '10px', padding: '8px' };
-const regBtnStyle = { width: '100%', marginTop: '20px', padding: '10px', backgroundColor: '#28a745', color: 'white' };
+const btnStyle = (c) => ({ width: '80%', padding: '12px', margin: '8px 0', backgroundColor: c, color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer' });
