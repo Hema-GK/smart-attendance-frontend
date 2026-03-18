@@ -4,7 +4,7 @@ export default function Login() {
   const [usn, setUsn] = useState("");
   const [password, setPassword] = useState("");
 const loginStudent = async () => {
-  // Use .trim() to remove accidental spaces from mobile keyboard
+  // 1. Clean input for mobile (removes accidental spaces from keyboard)
   const cleanUsn = usn.trim();
   const cleanPassword = password.trim();
 
@@ -19,27 +19,31 @@ const loginStudent = async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ usn: cleanUsn, password: cleanPassword }),
     });
-    // ... rest of logic
 
-      const data = await res.json();
+    const data = await res.json();
 
-      // Flexible check for "success" as seen in your mobile screenshot
-      if ((data.status === "success" || data.status === "Login success") && data.student) {
-        localStorage.setItem("student_usn", data.student.usn);
-        localStorage.setItem("student_id", data.student.id);
+    // 2. Matches the "status": "success" and "student": {} object from your backend
+    if (data.status === "success" && data.student) {
+      
+      // 3. Store the data for the Dashboard to use
+      localStorage.setItem("student_usn", data.student.usn);
+      localStorage.setItem("student_id", data.student.id);
+      localStorage.setItem("student_name", data.student.name);
 
-        alert("Login Successful ✅");
-        
-        // Immediate redirect using absolute path
-        window.location.href = window.location.origin + "/student/dashboard";
-      } else {
-        alert(data.status || "Invalid Credentials");
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Network error: Cannot reach the server.");
+      alert(`Welcome back, ${data.student.name}! ✅`);
+
+      // 4. Guaranteed redirect for Vercel/Mobile
+      window.location.href = window.location.origin + "/student/dashboard";
+
+    } else {
+      // 5. This will show your custom backend error messages ("Wrong password", etc.)
+      alert(data.message || "Login failed. Please check your credentials.");
     }
-  };
+  } catch (error) {
+    console.error("Login Error:", error);
+    alert("Server unreachable. Please check your internet connection.");
+  }
+};
 
   return (
     <div className="card">
