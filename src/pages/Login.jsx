@@ -11,7 +11,7 @@ export default function Login() {
     }
 
     try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/students/login", {
+      const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ usn, password }),
