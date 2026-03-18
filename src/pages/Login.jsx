@@ -5,38 +5,47 @@ const Login = () => {
   const navigate = useNavigate();
   const [credentials, setCredentials] = useState({ usn: "", password: "" });
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  
-  // Debug: See what you are sending
-  console.log("Sending to backend:", credentials);
-
-  try {
-    const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        usn: credentials.usn.trim(), // Trim spaces here too
-        password: credentials.password.trim()
-      })
-    });
+  const handleLogin = async (e) => {
+    e.preventDefault();
     
-    const data = await res.json();
-    console.log("Backend response:", data); // Debug: See the actual error message
+    try {
+      const res = await fetch("https://final-production-8aff.up.railway.app/student/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          usn: credentials.usn.trim(),
+          password: credentials.password.trim()
+        })
+      });
 
-    if (data.status === "success") {
-      localStorage.setItem("student_id", data.student_id);
-      navigate("/student/dashboard");
-    } else {
-      // This will now show the specific error from the backend
-      alert(data.message); 
+      // Check if the server actually responded with a 200 OK
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(`Server Error: ${errorData.detail || "Login failed"}`);
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Backend Response:", data);
+
+      if (data.status === "success") {
+        // Ensure student_id is present before moving forward
+        if (data.student_id) {
+          localStorage.setItem("student_id", data.student_id);
+          navigate("/student/dashboard");
+        } else {
+          alert("Login successful but no Student ID received.");
+        }
+      } else {
+        // Fallback for if 'message' is missing in the backend response
+        alert(data.message || "Invalid USN or Password (Backend error)");
+      }
+    } catch (err) {
+      console.error("Connection Error:", err);
+      alert("Cannot connect to the server. Please check your internet or if the backend is running.");
     }
-  } catch (err) {
-    alert("Server is down or CORS error");
-  }
-};
+  };
 
-  // --- MISSING RETURN BLOCK ADDED HERE ---
   return (
     <div style={containerStyle}>
       <div style={formCard}>
