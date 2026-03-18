@@ -3,7 +3,7 @@ import { Routes, Route } from "react-router-dom"
 import LandingPage from "./pages/LandingPage"
 
 import RegisterStudent from "./pages/RegisterStudent"
-import LoginStudent from "./pages/Login"
+import LoginStudent from "./pages/Login.jsx"
 
 import RegisterTeacher from "./pages/RegisterTeacher"
 import LoginAdmin from "./pages/LoginAdmin"
