@@ -60,66 +60,32 @@
 // }
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-export default function Login() {
+export default function LoginStudent() {
+  const navigate = useNavigate();
   const [usn, setUsn] = useState("");
-  const [password, setPassword] = useState("");
 
-  const loginStudent = async () => {
-    const cleanUsn = usn.trim();
-    const cleanPassword = password.trim();
-    if (!cleanUsn || !cleanPassword) { alert("Enter USN and Password"); return; }
-
-    try {
-      const res = await fetch("https://final-production-8aff.up.railway.app/students/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ usn: cleanUsn, password: cleanPassword }),
-      });
-      const data = await res.json();
-      if (data.status === "success" && data.student) {
-        localStorage.setItem("student_usn", data.student.usn);
-        localStorage.setItem("student_id", data.student.id);
-        localStorage.setItem("student_name", data.student.name);
-        window.location.href = window.location.origin + "/student/dashboard";
-      } else {
-        alert(data.message || "Login failed.");
-      }
-    } catch (error) {
-      alert("Server unreachable.");
-    }
+  const handleLogin = (e) => {
+    e.preventDefault();
+    // After your API success logic:
+    localStorage.setItem("userRole", "student");
+    navigate("/student/dashboard"); // Matches your App.jsx
   };
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', padding: '20px' }}>
-      <div className="glass-card" style={{ width: '100%', maxWidth: '400px', padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem', marginBottom: '10px' }}>👤</div>
-        <h2 style={{ fontSize: '1.8rem', fontWeight: '700', marginBottom: '30px' }}>Student Login</h2>
-        
-        <input 
-          className="aesthetic-input" 
-          placeholder="Enter USN" 
-          style={{ marginBottom: '15px' }}
-          value={usn} 
-          onChange={(e) => setUsn(e.target.value)} 
-        />
-        <input 
-          className="aesthetic-input" 
-          type="password" 
-          placeholder="Enter Password" 
-          style={{ marginBottom: '25px' }}
-          value={password} 
-          onChange={(e) => setPassword(e.target.value)} 
-        />
-        
-        <button className="aesthetic-btn" style={{ width: '100%' }} onClick={loginStudent}>
-          Sign In
-        </button>
-
-        <p style={{ marginTop: "25px", opacity: 0.7 }}>
-          New here? <a href="/student/register" style={{ color: "#818cf8", fontWeight: "bold", textDecoration: 'none' }}>Create Account</a>
-        </p>
+    <div className="login-container" style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>
+      <div className="glass-card" style={{width: '350px'}}>
+        <h2>Student Login</h2>
+        <form onSubmit={handleLogin}>
+          <input type="text" placeholder="USN" className="aesthetic-input" onChange={(e)=>setUsn(e.target.value)} style={inputStyle}/>
+          <button type="submit" className="aesthetic-btn" style={studentBtn}>Login</button>
+        </form>
+        <p style={{marginTop:'15px'}}>New? <span onClick={()=>navigate('/student/register')} style={{color:'#4facfe', cursor:'pointer'}}>Register here</span></p>
       </div>
     </div>
   );
 }
+
+const inputStyle = { width: '100%', padding: '12px', margin: '10px 0', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' };
+const studentBtn = { width: '100%', padding: '12px', background: '#4facfe', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };

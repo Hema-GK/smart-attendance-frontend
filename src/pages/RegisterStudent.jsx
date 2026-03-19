@@ -86,121 +86,53 @@
 //     </div>
 //   );
 // }
-
-import { useState } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../api/api";
+import API from "../api/api"; // Ensure your API helper is correctly imported
 
-// --- STYLING CONSTANTS ---
-const regContainerStyle = {
-  display: 'flex',
-  justifyContent: 'center',
-  alignItems: 'center',
-  minHeight: '100vh', // Changed to minHeight for longer forms
-  padding: '40px 20px'
-};
-
-const inputStyle = {
-  width: '100%',
-  padding: '12px 16px',
-  margin: '8px 0',
-  borderRadius: '12px',
-  border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(0,0,0,0.2)',
-  color: 'white',
-  outline: 'none',
-  fontSize: '0.95rem'
-};
-
-const registerButtonStyle = {
-  width: '100%',
-  padding: '14px',
-  borderRadius: '12px',
-  border: 'none',
-  background: 'linear-gradient(90deg, #00f2fe, #4facfe)', // Cyan/Blue gradient for Register
-  color: 'white',
-  fontWeight: '700',
-  letterSpacing: '1px',
-  cursor: 'pointer',
-  boxShadow: '0 4px 15px rgba(79, 172, 254, 0.4)',
-  marginTop: '15px',
-  transition: '0.3s'
-};
-
-export default function Register() {
-  const [formData, setFormData] = useState({
-    name: "",
-    usn: "",
-    section: "",
-    password: ""
-  });
+export default function RegisterStudent() {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: "", usn: "", section: "", password: "" });
 
-  const handleRegister = async () => {
+  const handleRegister = async (e) => {
+    e.preventDefault();
     try {
-      const res = await API.post("/auth/register", formData);
-      alert("Registration Successful!");
-      navigate("/login");
+      await API.post("/auth/register", formData);
+      alert("Registration Successful! Please login.");
+      navigate("/student/login"); // Redirects to Student Login
     } catch (err) {
-      alert("Registration Failed. Try again.");
+      alert("Registration failed. USN might already exist.");
     }
   };
 
   return (
-    <div style={regContainerStyle}>
-      <div className="glass-card" style={{ maxWidth: '400px', width: '100%' }}>
-        <h2 style={{ marginBottom: '10px' }}>Create Account</h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
-          Join the Smart Attendance System
-        </p>
+    <div style={containerStyle}>
+      <div className="glass-card" style={{ width: '400px', padding: '40px' }}>
+        <h2 style={{ color: '#fff' }}>Student <span style={{ color: '#4facfe' }}>Registration</span></h2>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>Join the Smart Attendance network</p>
 
-        <input
-          type="text"
-          placeholder="Full Name"
-          style={inputStyle}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-        />
+        <form onSubmit={handleRegister} style={formStyle}>
+          <input type="text" placeholder="Full Name" style={inputStyle} required onChange={(e) => setFormData({ ...formData, name: e.target.value })} />
+          <input type="text" placeholder="USN" style={inputStyle} required onChange={(e) => setFormData({ ...formData, usn: e.target.value })} />
+          <input type="text" placeholder="Section (A, B, or C)" style={inputStyle} required onChange={(e) => setFormData({ ...formData, section: e.target.value })} />
+          <input type="password" placeholder="Create Password" style={inputStyle} required onChange={(e) => setFormData({ ...formData, password: e.target.value })} />
+          
+          <button type="submit" className="aesthetic-btn" style={studentBtn}>CREATE ACCOUNT</button>
+        </form>
 
-        <input
-          type="text"
-          placeholder="USN (University Serial Number)"
-          style={inputStyle}
-          onChange={(e) => setFormData({ ...formData, usn: e.target.value })}
-        />
-
-        <input
-          type="text"
-          placeholder="Section (e.g., A, B, C)"
-          style={inputStyle}
-          onChange={(e) => setFormData({ ...formData, section: e.target.value })}
-        />
-
-        <input
-          type="password"
-          placeholder="Set Password"
-          style={inputStyle}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-        />
-
-        <button 
-          style={registerButtonStyle}
-          onClick={handleRegister}
-          onMouseOver={(e) => e.target.style.transform = 'scale(1.02)'}
-          onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
-        >
-          REGISTER NOW
-        </button>
-
-        <p style={{ marginTop: '20px', fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
+        <p style={{ marginTop: '20px', color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
           Already registered?{" "}
-          <span 
-            onClick={() => navigate('/login')} 
-            style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}
-          >
-            Sign In
+          <span onClick={() => navigate('/student/login')} style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}>
+            Login here
           </span>
         </p>
       </div>
     </div>
   );
 }
+
+// Shared Styles (can be moved to a theme file later)
+const containerStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' };
+const formStyle = { display: 'flex', flexDirection: 'column', gap: '10px' };
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)', outline: 'none' };
+const studentBtn = { width: '100%', padding: '14px', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
