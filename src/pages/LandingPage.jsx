@@ -35,10 +35,10 @@
 // }
 
 
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUserGraduation, FaChalkboardTeacher } from "react-icons/fa6";
+// Change fa6 to fa here
+import { FaGraduationCap, FaChalkboardTeacher } from "react-icons/fa"; 
 
 // --- LANDING PAGE STYLES ---
 const containerStyle = {
@@ -49,7 +49,7 @@ const containerStyle = {
   minHeight: '100vh',
   padding: '20px',
   textAlign: 'center',
-  background: 'transparent' // Inherits your global animated gradient
+  background: 'transparent' 
 };
 
 const cardWrapperStyle = {
@@ -88,7 +88,6 @@ export default function LandingPage() {
 
   return (
     <div style={containerStyle}>
-      {/* Header Section */}
       <div style={{ animation: 'fadeInDown 1s ease-out' }}>
         <h1 style={{ fontSize: '3.5rem', color: '#fff', marginBottom: '10px', fontWeight: '800' }}>
           Smart <span style={{ color: '#4facfe' }}>Attendance</span>
@@ -98,7 +97,6 @@ export default function LandingPage() {
         </p>
       </div>
 
-      {/* Selection Cards */}
       <div style={cardWrapperStyle}>
         
         {/* STUDENT PATH */}
@@ -115,7 +113,7 @@ export default function LandingPage() {
           }}
         >
           <div style={iconContainerStyle('#4facfe')}>
-            <FaUserGraduation />
+            <FaGraduationCap /> {/* Updated Icon */}
           </div>
           <div>
             <h3 style={{ margin: '0', color: '#fff', fontSize: '1.5rem' }}>Student Portal</h3>
@@ -161,12 +159,10 @@ export default function LandingPage() {
 
       </div>
 
-      {/* Footer Info */}
       <div style={{ marginTop: '80px', color: 'rgba(255,255,255,0.3)', fontSize: '13px', letterSpacing: '1px' }}>
         SYSTEM STATUS: <span style={{ color: '#4aff4a' }}>OPERATIONAL</span>
       </div>
 
-      {/* Keyframe Animations */}
       <style>{`
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-30px); }
