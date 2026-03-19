@@ -212,7 +212,7 @@
 // };
 
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
 
@@ -222,105 +222,103 @@ export default function FaceCapture({ currentClass }) {
   const [confirmed, setConfirmed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [marking, setMarking] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
 
-  // 1. Recognize Face
+  // Video constraints for Mobile (Forces back/front camera correctly)
+  const videoConstraints = {
+    width: 720,
+    height: 720,
+    facingMode: "user" // Use "user" for front camera, "environment" for back
+  };
+
   const captureFace = async () => {
+    if (!webcamRef.current) return;
     setLoading(true);
-    const image = webcamRef.current.getScreenshot();
-
+    
     try {
+      const image = webcamRef.current.getScreenshot();
+      if (!image) {
+        alert("Camera not ready. Please wait a moment.");
+        setLoading(false);
+        return;
+      }
+
       const res = await API.post("/face/recognize", { image });
       if (res.data.status === "Face recognized") {
         setStudent(res.data.student);
       } else {
-        alert(res.data.status || "Face not recognized. Try again.");
+        alert(res.data.status || "Recognition failed.");
       }
     } catch (err) {
-      alert("Face recognition service unreachable.");
+      alert("Recognition error. Check server connection.");
     } finally {
       setLoading(false);
     }
   };
 
-  // 2. Mark Attendance with Location Check
   const markAttendance = async () => {
     setMarking(true);
-    
     navigator.geolocation.getCurrentPosition(
-      async (position) => {
+      async (pos) => {
         try {
           const res = await API.post("/attendance/mark", {
             student_id: student.id,
             timetable_id: currentClass.id,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude
           });
-
           if (res.data.status === "success") {
-            alert("Attendance marked successfully! ✅");
-            window.location.href = "/student/dashboard"; // Redirect on success
+            alert("Attendance marked! ✅");
+            window.location.href = "/student/dashboard";
           } else {
-            // SHOW THE DISTANCE ERROR HERE
-            const dist = res.data.distance || "unknown";
-            alert(`Attendance Failed! ❌\nYou are ${dist}m away from the classroom center.`);
+            alert(`Failed: ${res.data.distance}m away.`);
           }
-        } catch (err) {
-          // Handle cases where the backend returns a 400 error with distance
-          const errorDist = err.response?.data?.distance;
-          if (errorDist) {
-            alert(`Location Error: ❌\nYou are ${errorDist}m away. Please go inside the room.`);
-          } else {
-            alert("Attendance submission failed. Check your internet.");
-          }
-        } finally {
-          setMarking(false);
-        }
+        } catch (err) { alert("Error marking attendance."); }
+        finally { setMarking(false); }
       },
-      (error) => {
-        setMarking(false);
-        alert("Location access denied. Please enable GPS on your phone.");
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
+      () => { alert("Location required!"); setMarking(false); },
+      { enableHighAccuracy: true }
     );
   };
 
   return (
     <div style={{ textAlign: "center" }}>
-      <h2 style={{ marginBottom: '20px', color: '#fff' }}>Biometric Verification</h2>
+      <h2 style={{ color: '#fff', marginBottom: '15px' }}>Biometric Verification</h2>
       
-      {/* WEBCAM CONTAINER */}
-      <div style={{ position: 'relative', overflow: 'hidden', borderRadius: '20px', border: '2px solid #4facfe' }}>
-        <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" width="100%" />
+      {/* CAMERA BOX */}
+      <div style={webcamContainer}>
+        <Webcam
+          ref={webcamRef}
+          audio={false}
+          screenshotFormat="image/jpeg"
+          videoConstraints={videoConstraints}
+          onUserMedia={() => setCameraReady(true)}
+          onUserMediaError={() => alert("Please allow camera access in browser settings!")}
+          style={webcamStyle}
+        />
+        {!cameraReady && <div style={cameraPlaceholder}>Initializing Camera...</div>}
         {loading && <div style={scanLineStyle}></div>}
       </div>
 
       <div style={{ marginTop: '20px' }}>
         {!student ? (
-          <button className="aesthetic-btn" style={captureBtnStyle} onClick={captureFace} disabled={loading}>
-            {loading ? "SCANNING FACE..." : "CAPTURE FACE"}
+          <button className="aesthetic-btn" style={captureBtn} onClick={captureFace} disabled={!cameraReady || loading}>
+            {loading ? "SCANNING..." : "CAPTURE FACE"}
           </button>
         ) : (
-          <div className="glass-card" style={resultCardStyle}>
-            <p style={{ margin: 0, fontSize: '0.8rem', opacity: 0.6 }}>STUDENT DETECTED</p>
-            <h3 style={{ margin: '5px 0', color: '#4facfe' }}>{student.name}</h3>
-            <p style={{ margin: '0 0 15px 0', fontWeight: 'bold', fontSize: '0.9rem' }}>{student.usn}</p>
+          <div className="glass-card" style={resultCard}>
+            <h3 style={{ color: '#4facfe', margin: '5px 0' }}>{student.name}</h3>
+            <p style={{ color: '#fff', opacity: 0.8 }}>{student.usn}</p>
             
             {!confirmed ? (
-              <button className="aesthetic-btn" style={confirmBtnStyle} onClick={() => setConfirmed(true)}>
+              <button className="aesthetic-btn" style={{ background: '#22c55e', width: '100%' }} onClick={() => setConfirmed(true)}>
                 CONFIRM IDENTITY
               </button>
             ) : (
-              <button className="aesthetic-btn" style={finalizeBtnStyle} onClick={markAttendance} disabled={marking}>
-                {marking ? "VERIFYING LOCATION..." : "FINALIZE ATTENDANCE"}
+              <button className="aesthetic-btn" style={{ background: 'var(--accent-gradient)', width: '100%' }} onClick={markAttendance} disabled={marking}>
+                {marking ? "VERIFYING..." : "FINALIZE ATTENDANCE"}
               </button>
             )}
-            
-            <button 
-              style={resetBtnStyle} 
-              onClick={() => { setStudent(null); setConfirmed(false); }}
-            >
-              Retake Photo
-            </button>
           </div>
         )}
       </div>
@@ -328,47 +326,31 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// --- INTERNAL STYLES ---
+// --- NEW STYLES ---
+const webcamContainer = {
+  position: 'relative',
+  width: '100%',
+  aspectRatio: '1/1',
+  borderRadius: '20px',
+  overflow: 'hidden',
+  background: '#000',
+  border: '2px solid #4facfe'
+};
+
+const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
+
+const cameraPlaceholder = {
+  position: 'absolute',
+  top: 0, left: 0, width: '100%', height: '100%',
+  display: 'flex', justifyContent: 'center', alignItems: 'center',
+  color: '#4facfe', background: '#111'
+};
 
 const scanLineStyle = {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '4px',
-  background: '#4facfe',
-  boxShadow: '0 0 15px #4facfe',
-  animation: 'scan 2s linear infinite'
+  position: 'absolute', top: 0, left: 0, width: '100%', height: '4px',
+  background: '#4facfe', boxShadow: '0 0 15px #4facfe', animation: 'scan 2s linear infinite'
 };
 
-const captureBtnStyle = { 
-  width: '100%', 
-  padding: '15px', 
-  background: 'linear-gradient(90deg, #4facfe, #00f2fe)', 
-  color: '#fff', 
-  fontWeight: 'bold',
-  borderRadius: '12px',
-  border: 'none',
-  cursor: 'pointer'
-};
+const captureBtn = { width: '100%', padding: '15px', borderRadius: '12px', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', color: '#fff', border: 'none', fontWeight: 'bold' };
 
-const resultCardStyle = { 
-  marginTop: "10px", 
-  padding: "20px", 
-  background: 'rgba(255, 255, 255, 0.05)', 
-  borderRadius: '15px',
-  border: '1px solid rgba(255,255,255,0.1)' 
-};
-
-const confirmBtnStyle = { width: '100%', background: '#22c55e', color: 'white' };
-const finalizeBtnStyle = { width: '100%', background: 'linear-gradient(90deg, #6366f1, #a855f7)', color: 'white' };
-
-const resetBtnStyle = {
-    background: 'none',
-    border: 'none',
-    color: 'rgba(255,255,255,0.4)',
-    marginTop: '15px',
-    fontSize: '0.8rem',
-    cursor: 'pointer',
-    textDecoration: 'underline'
-};
+const resultCard = { padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '15px', marginTop: '10px' };
