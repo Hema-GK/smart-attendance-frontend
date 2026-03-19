@@ -59,33 +59,70 @@
 //   );
 // }
 
+
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api/api";
 
-export default function LoginStudent() {
-  const navigate = useNavigate();
+export default function Login() {
   const [usn, setUsn] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    // After your API success logic:
-    localStorage.setItem("userRole", "student");
-    navigate("/student/dashboard"); // Matches your App.jsx
+  // THIS IS YOUR OLD LOGIC
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevents page reload
+    try {
+      const res = await API.post("/auth/login", { usn, password });
+      if (res.data.token) {
+        localStorage.setItem("token", res.data.token);
+        localStorage.setItem("role", "student");
+        navigate("/student/dashboard"); // Successful redirect
+      }
+    } catch (err) {
+      alert("Invalid Credentials. Please try again.");
+    }
   };
 
   return (
-    <div className="login-container" style={{display:'flex', justifyContent:'center', alignItems:'center', height:'100vh'}}>
-      <div className="glass-card" style={{width: '350px'}}>
-        <h2>Student Login</h2>
+    <div style={loginContainerStyle}>
+      <div className="glass-card" style={{ width: '350px' }}>
+        <h2 style={{marginBottom: '20px'}}>Student Login</h2>
+        
         <form onSubmit={handleLogin}>
-          <input type="text" placeholder="USN" className="aesthetic-input" onChange={(e)=>setUsn(e.target.value)} style={inputStyle}/>
-          <button type="submit" className="aesthetic-btn" style={studentBtn}>Login</button>
+          <input 
+            type="text" 
+            placeholder="Enter USN" 
+            style={inputStyle} 
+            value={usn}
+            onChange={(e) => setUsn(e.target.value)}
+            required
+          />
+          
+          <input 
+            type="password" 
+            placeholder="Enter Password" 
+            style={inputStyle} 
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          {/* This button now triggers handleLogin because it is type="submit" */}
+          <button type="submit" style={primaryButtonStyle}>
+            Login
+          </button>
         </form>
-        <p style={{marginTop:'15px'}}>New? <span onClick={()=>navigate('/student/register')} style={{color:'#4facfe', cursor:'pointer'}}>Register here</span></p>
+
+        <p style={{ marginTop: '20px', fontSize: '14px', color: 'rgba(255,255,255,0.6)' }}>
+          New? <span onClick={() => navigate('/student/register')} style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}>Register here</span>
+        </p>
       </div>
     </div>
   );
 }
 
-const inputStyle = { width: '100%', padding: '12px', margin: '10px 0', borderRadius: '8px', background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.2)' };
-const studentBtn = { width: '100%', padding: '12px', background: '#4facfe', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' };
+const loginContainerStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' };
+const inputStyle = { width: '100%', padding: '12px', margin: '10px 0', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(0,0,0,0.2)', color: 'white' };
+const primaryButtonStyle = { width: '100%', padding: '14px', borderRadius: '12px', border: 'none', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', color: 'white', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' };

@@ -96,50 +96,122 @@
 //   )
 // }
 
-import { useState, useEffect } from "react"
-import FaceCapture from "../components/FaceCapture"
-import API from "../api/api"
+
+
+import { useState, useEffect } from "react";
+import FaceCapture from "../components/FaceCapture";
+import API from "../api/api";
 
 export default function MarkAttendance() {
-  const [currentClass, setCurrentClass] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [currentClass, setCurrentClass] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     API.get("/timetable/current-class")
       .then(res => {
-        if (res.data.status === "Class Active") setCurrentClass(res.data.class)
-        setLoading(false)
+        if (res.data.status === "Class Active") {
+          setCurrentClass(res.data.class);
+        }
+        setLoading(false);
       })
-      .catch(() => setLoading(false))
-  }, [])
+      .catch(err => {
+        console.log(err);
+        setLoading(false);
+      });
+  }, []);
 
-  if (loading) return <div style={fullPageCenter}><h2>Verifying Session...</h2></div>
-  if (!currentClass) return (
-    <div style={fullPageCenter}>
-      <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
-        <div style={{ fontSize: '3rem' }}>⏰</div>
-        <h2>No Class Detected</h2>
-        <p style={{ opacity: 0.6 }}>There are no active sessions scheduled for this time.</p>
-      </div>
-    </div>
-  )
-
-  return (
-    <div style={{ ...fullPageCenter, padding: '20px' }}>
-      <div className="glass-card" style={{ padding: '25px', width: '100%', maxWidth: '400px', marginBottom: '20px', textAlign: 'center' }}>
-        <h3 style={{ margin: '0 0 10px 0', color: '#818cf8' }}>Active Session</h3>
-        <h2 style={{ margin: 0 }}>{currentClass.subject}</h2>
-        <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'center', gap: '15px', opacity: 0.7 }}>
-           <span>📍 {currentClass.classroom}</span>
-           <span>🎓 Sem {currentClass.semester}</span>
+  // --- LOADING SCREEN ---
+  if (loading) {
+    return (
+      <div style={containerStyle}>
+        <div className="glass-card" style={{padding: '40px', textAlign: 'center'}}>
+          <div className="spinner" style={spinnerStyle}></div>
+          <h2 style={{ color: "white", marginTop: '20px' }}>Verifying Schedule...</h2>
         </div>
       </div>
+    );
+  }
 
-      <div className="glass-card" style={{ padding: '10px', overflow: 'hidden', borderRadius: '30px' }}>
-         <FaceCapture currentClass={currentClass} />
+  // --- NO CLASS RUNNING ---
+  if (!currentClass) {
+    return (
+      <div style={containerStyle}>
+        <div className="glass-card" style={{ padding: "40px", color: "white", textAlign: "center", maxWidth: '400px' }}>
+          <h2 style={{color: '#ff4d4d'}}>No Active Session</h2>
+          <p style={{opacity: 0.7, marginTop: '10px'}}>There are no classes scheduled for your section at this moment.</p>
+          <button onClick={() => window.location.reload()} style={retryBtn}>Check Again</button>
+        </div>
+      </div>
+    );
+  }
+
+  // --- MAIN ATTENDANCE PAGE ---
+  return (
+    <div style={containerStyle}>
+      <div style={{display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', maxWidth: '500px'}}>
+        
+        {/* INFO CARD */}
+        <div className="glass-card" style={{ width: "100%", textAlign: "center", borderLeft: '4px solid #4facfe' }}>
+          <span style={badgeStyle}>Live Session</span>
+          <h2 style={{fontSize: '1.8rem', margin: '10px 0'}}>{currentClass.subject}</h2>
+          <div style={infoGrid}>
+            <p><b>Section:</b> {currentClass.section}</p>
+            <p><b>Room:</b> {currentClass.classroom}</p>
+          </div>
+        </div>
+
+        {/* FACE CAPTURE COMPONENT */}
+        <div className="glass-card" style={{width: '100%', padding: '10px'}}>
+             <FaceCapture currentClass={currentClass} />
+        </div>
       </div>
     </div>
-  )
+  );
 }
 
-const fullPageCenter = { display: "flex", justifyContent: "center", alignItems: "center", height: "100vh", flexDirection: "column" };
+// --- STYLES ---
+const containerStyle = {
+  minHeight: "100vh",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  padding: "20px"
+};
+
+const badgeStyle = {
+    background: 'rgba(79, 172, 254, 0.2)',
+    color: '#4facfe',
+    padding: '4px 12px',
+    borderRadius: '20px',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    textTransform: 'uppercase'
+};
+
+const infoGrid = {
+    display: 'flex',
+    justifyContent: 'space-around',
+    marginTop: '15px',
+    fontSize: '14px',
+    opacity: 0.8
+};
+
+const retryBtn = {
+    marginTop: '20px',
+    padding: '10px 20px',
+    background: 'rgba(255,255,255,0.1)',
+    border: '1px solid rgba(255,255,255,0.2)',
+    color: 'white',
+    borderRadius: '8px',
+    cursor: 'pointer'
+};
+
+const spinnerStyle = {
+    width: '40px',
+    height: '40px',
+    border: '4px solid rgba(255,255,255,0.1)',
+    borderTop: '4px solid #4facfe',
+    borderRadius: '50%',
+    margin: '0 auto',
+    animation: 'spin 1s linear infinite'
+};
