@@ -1,4 +1,4 @@
-.card{
+/* .card{
 width:320px;
 margin:auto;
 padding:20px;
@@ -42,4 +42,46 @@ background:#28a745;
 
 .register:hover{
 background:#1f7a33;
+} */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+
+:root {
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --accent-color: #ff4b2b;
+  --glass-bg: rgba(255, 255, 255, 0.08);
+  --glass-border: rgba(255, 255, 255, 0.12);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
+  background-attachment: fixed;
+  color: #ffffff;
+  min-height: 100vh;
+}
+
+/* Reusable Glass Card Styling */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  padding: 2rem;
+  transition: transform 0.3s ease;
+}
+
+.glass-card:hover {
+  transform: translateY(-5px);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+@keyframes scan {
+  0% { top: 0% }
+  50% { top: 100% }
+  100% { top: 0% }
 }

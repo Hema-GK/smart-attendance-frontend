@@ -1,159 +1,273 @@
+// // import { useState } from "react"
+// // import { useNavigate } from "react-router-dom"
+
+// // export default function LoginTeacher(){
+
+// // const navigate = useNavigate()
+
+// // const [email,setEmail] = useState("")
+// // const [password,setPassword] = useState("")
+
+// // const loginTeacher = async ()=>{
+
+// // try{
+
+// // const res = await fetch("http://127.0.0.1:8000/teachers/login",{
+// // method:"POST",
+// // headers:{
+// // "Content-Type":"application/json"
+// // },
+// // body:JSON.stringify({
+// // email,
+// // password
+// // })
+// // })
+
+// // const data = await res.json()
+
+// // console.log("LOGIN RESPONSE:",data)
+
+// // if(data.status === "Login success"){
+
+// // localStorage.setItem("teacher_id", data.teacher_id)
+
+// // navigate("/teacher/dashboard")
+
+// // }else{
+
+// // alert(data.status)
+
+// // }
+
+// // }catch(err){
+
+// // console.log("ERROR:",err)
+// // alert("Server error")
+
+// // }
+
+// // }
+
+// // return(
+
+// // <div className="card">
+
+// // <h2>Teacher Login</h2>
+
+// // <input
+// // placeholder="Email"
+// // value={email}
+// // onChange={(e)=>setEmail(e.target.value)}
+// // />
+
+// // <input
+// // type="password"
+// // placeholder="Password"
+// // value={password}
+// // onChange={(e)=>setPassword(e.target.value)}
+// // />
+
+// // <button onClick={loginTeacher}>
+// // Login
+// // </button>
+
+// // <p>
+// // Don't have account? 
+// // <a href="/teacher/register"> Register</a>
+// // </p>
+
+// // </div>
+
+// // )
+
+// // }
+
 // import { useState } from "react"
 // import { useNavigate } from "react-router-dom"
 
 // export default function LoginTeacher(){
 
-// const navigate = useNavigate()
+//   const navigate = useNavigate()
 
-// const [email,setEmail] = useState("")
-// const [password,setPassword] = useState("")
+//   const [email, setEmail] = useState("")
+//   const [password, setPassword] = useState("")
 
-// const loginTeacher = async ()=>{
+//   const loginTeacher = async () => {
+//     try {
+//       // Pointing to your verified live Railway backend
+//       const backendUrl = "https://final-production-8aff.up.railway.app";
 
-// try{
+//       const res = await fetch(`${backendUrl}/teachers/login`, {
+//         method: "POST",
+//         headers: {
+//           "Content-Type": "application/json"
+//         },
+//         body: JSON.stringify({
+//           email,
+//           password
+//         })
+//       })
 
-// const res = await fetch("http://127.0.0.1:8000/teachers/login",{
-// method:"POST",
-// headers:{
-// "Content-Type":"application/json"
-// },
-// body:JSON.stringify({
-// email,
-// password
-// })
-// })
+//       const data = await res.json()
 
-// const data = await res.json()
+//       console.log("LOGIN RESPONSE:", data)
 
-// console.log("LOGIN RESPONSE:",data)
-
-// if(data.status === "Login success"){
-
-// localStorage.setItem("teacher_id", data.teacher_id)
-
-// navigate("/teacher/dashboard")
-
-// }else{
-
-// alert(data.status)
-
-// }
-
-// }catch(err){
-
-// console.log("ERROR:",err)
-// alert("Server error")
-
-// }
-
-// }
-
-// return(
-
-// <div className="card">
-
-// <h2>Teacher Login</h2>
-
-// <input
-// placeholder="Email"
-// value={email}
-// onChange={(e)=>setEmail(e.target.value)}
-// />
-
-// <input
-// type="password"
-// placeholder="Password"
-// value={password}
-// onChange={(e)=>setPassword(e.target.value)}
-// />
-
-// <button onClick={loginTeacher}>
-// Login
-// </button>
-
-// <p>
-// Don't have account? 
-// <a href="/teacher/register"> Register</a>
-// </p>
-
-// </div>
-
-// )
-
-// }
-
-import { useState } from "react"
-import { useNavigate } from "react-router-dom"
-
-export default function LoginTeacher(){
-
-  const navigate = useNavigate()
-
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-
-  const loginTeacher = async () => {
-    try {
-      // Pointing to your verified live Railway backend
-      const backendUrl = "https://final-production-8aff.up.railway.app";
-
-      const res = await fetch(`${backendUrl}/teachers/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          email,
-          password
-        })
-      })
-
-      const data = await res.json()
-
-      console.log("LOGIN RESPONSE:", data)
-
-      if (data.status === "Login success") {
-        // Storing the teacher ID for the dashboard sessions
-        localStorage.setItem("teacher_id", data.teacher_id)
+//       if (data.status === "Login success") {
+//         // Storing the teacher ID for the dashboard sessions
+//         localStorage.setItem("teacher_id", data.teacher_id)
         
-        alert("Login Successful");
-        navigate("/teacher/dashboard")
-      } else {
-        alert(data.status)
-      }
+//         alert("Login Successful");
+//         navigate("/teacher/dashboard")
+//       } else {
+//         alert(data.status)
+//       }
 
-    } catch (err) {
-      console.log("ERROR:", err)
-      // Standardizing error message to match your student login
-      alert("Server connection failed")
-    }
-  }
+//     } catch (err) {
+//       console.log("ERROR:", err)
+//       // Standardizing error message to match your student login
+//       alert("Server connection failed")
+//     }
+//   }
+
+//   return (
+//     <div className="card">
+//       <h2>Teacher Login</h2>
+
+//       <input
+//         placeholder="Email"
+//         value={email}
+//         onChange={(e) => setEmail(e.target.value)}
+//       />
+
+//       <input
+//         type="password"
+//         placeholder="Password"
+//         value={password}
+//         onChange={(e) => setPassword(e.target.value)}
+//       />
+
+//       <button onClick={loginTeacher}>
+//         Login
+//       </button>
+
+//       <p style={{ marginTop: "15px" }}>
+//         Don't have account? 
+//         <a href="/teacher/register" style={{ color: "#fff", fontWeight: "bold" }}> Register</a>
+//       </p>
+//     </div>
+//   )
+// }
+
+
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+
+// --- CORPORATE GLASS STYLING ---
+const loginContainerStyle = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100vh',
+  padding: '20px'
+};
+
+const inputStyle = {
+  width: '100%',
+  padding: '12px 16px',
+  margin: '10px 0',
+  borderRadius: '12px',
+  border: '1px solid rgba(255,255,255,0.1)',
+  background: 'rgba(255,255,255,0.05)', // Slightly lighter for contrast
+  color: 'white',
+  outline: 'none',
+  fontSize: '1rem',
+  transition: '0.3s'
+};
+
+const corporateButtonStyle = {
+  width: '100%',
+  padding: '14px',
+  borderRadius: '12px',
+  border: 'none',
+  // Deep Indigo to Purple Gradient
+  background: 'linear-gradient(90deg, #6366f1, #a855f7)', 
+  color: 'white',
+  fontWeight: '700',
+  letterSpacing: '1px',
+  cursor: 'pointer',
+  boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
+  marginTop: '20px'
+};
+
+export default function TeacherLogin() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const navigate = useNavigate();
+
+  const handleLogin = async () => {
+    // Your login logic here (e.g., API call)
+    // On success:
+    localStorage.setItem("role", "teacher");
+    navigate("/teacher/dashboard");
+  };
 
   return (
-    <div className="card">
-      <h2>Teacher Login</h2>
+    <div style={loginContainerStyle}>
+      <div className="glass-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+        <div style={{ marginBottom: '20px' }}>
+            <span style={{ 
+                background: 'rgba(168, 85, 247, 0.2)', 
+                padding: '5px 12px', 
+                borderRadius: '20px', 
+                fontSize: '12px', 
+                color: '#c084fc',
+                fontWeight: 'bold',
+                textTransform: 'uppercase'
+            }}>
+                Faculty Portal
+            </span>
+        </div>
+        
+        <h2 style={{ marginBottom: '10px', color: '#fff' }}>Teacher Sign In</h2>
+        <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '14px', marginBottom: '20px' }}>
+            Access classroom analytics and management
+        </p>
 
-      <input
-        placeholder="Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        <input 
+          type="email" 
+          placeholder="Institutional Email" 
+          style={inputStyle}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onFocus={(e) => e.target.style.border = '1px solid #a855f7'}
+          onBlur={(e) => e.target.style.border = '1px solid rgba(255,255,255,0.1)'}
+        />
+        
+        <input 
+          type="password" 
+          placeholder="Password" 
+          style={inputStyle}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          onFocus={(e) => e.target.style.border = '1px solid #a855f7'}
+          onBlur={(e) => e.target.style.border = '1px solid rgba(255,255,255,0.1)'}
+        />
 
-      <input
-        type="password"
-        placeholder="Password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-      />
+        <button 
+            style={corporateButtonStyle}
+            onClick={handleLogin}
+            onMouseOver={(e) => e.target.style.transform = 'scale(1.02)'}
+            onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+        >
+          ENTER DASHBOARD
+        </button>
 
-      <button onClick={loginTeacher}>
-        Login
-      </button>
-
-      <p style={{ marginTop: "15px" }}>
-        Don't have account? 
-        <a href="/teacher/register" style={{ color: "#fff", fontWeight: "bold" }}> Register</a>
-      </p>
+        <div style={{ marginTop: '20px', fontSize: '13px' }}>
+          <a href="#" style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none' }}>
+            Forgot password?
+          </a>
+        </div>
+      </div>
     </div>
-  )
+  );
 }
