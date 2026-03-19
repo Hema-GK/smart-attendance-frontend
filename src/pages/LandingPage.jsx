@@ -34,8 +34,11 @@
 
 // }
 
+
+
+import React from "react";
 import { useNavigate } from "react-router-dom";
-import { FaUserStudent, FaChalkboardTeacher } from "react-icons/fa6"; // Ensure react-icons is installed
+import { FaUserGraduation, FaChalkboardTeacher } from "react-icons/fa6";
 
 // --- LANDING PAGE STYLES ---
 const containerStyle = {
@@ -45,7 +48,8 @@ const containerStyle = {
   alignItems: 'center',
   minHeight: '100vh',
   padding: '20px',
-  textAlign: 'center'
+  textAlign: 'center',
+  background: 'transparent' // Inherits your global animated gradient
 };
 
 const cardWrapperStyle = {
@@ -65,8 +69,19 @@ const selectionCardStyle = {
   flexDirection: 'column',
   alignItems: 'center',
   gap: '20px',
-  border: '1px solid rgba(255, 255, 255, 0.1)'
+  border: '1px solid rgba(255, 255, 255, 0.1)',
+  borderRadius: '24px',
+  background: 'rgba(255, 255, 255, 0.1)',
+  backdropFilter: 'blur(15px)',
+  WebkitBackdropFilter: 'blur(15px)',
+  boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.37)'
 };
+
+const iconContainerStyle = (color) => ({
+  fontSize: '60px',
+  color: color,
+  filter: `drop-shadow(0 0 10px ${color}44)`
+});
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -75,11 +90,11 @@ export default function LandingPage() {
     <div style={containerStyle}>
       {/* Header Section */}
       <div style={{ animation: 'fadeInDown 1s ease-out' }}>
-        <h1 style={{ fontSize: '3rem', color: '#fff', marginBottom: '10px', fontWeight: '800' }}>
+        <h1 style={{ fontSize: '3.5rem', color: '#fff', marginBottom: '10px', fontWeight: '800' }}>
           Smart <span style={{ color: '#4facfe' }}>Attendance</span>
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.1rem', maxWidth: '600px' }}>
-          Next-generation biometric attendance management for modern institutions.
+        <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '1.2rem', maxWidth: '600px', margin: '0 auto' }}>
+          Biometric verification and real-time analytics for the modern classroom.
         </p>
       </div>
 
@@ -88,53 +103,51 @@ export default function LandingPage() {
         
         {/* STUDENT PATH */}
         <div 
-          className="glass-card" 
           style={selectionCardStyle}
           onClick={() => navigate('/login')}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'translateY(-15px)';
+            e.currentTarget.style.transform = 'translateY(-15px) scale(1.02)';
             e.currentTarget.style.boxShadow = '0 20px 40px rgba(79, 172, 254, 0.3)';
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 32px 0 rgba(31, 38, 135, 0.37)';
           }}
         >
-          <div style={{ fontSize: '50px', color: '#4facfe' }}>
-            <FaUserStudent />
+          <div style={iconContainerStyle('#4facfe')}>
+            <FaUserGraduation />
           </div>
           <div>
-            <h3 style={{ margin: '0', color: '#fff' }}>Student Portal</h3>
+            <h3 style={{ margin: '0', color: '#fff', fontSize: '1.5rem' }}>Student Portal</h3>
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
-              Mark attendance & view records
+              Verify identity & mark attendance
             </p>
           </div>
-          <button className="aesthetic-btn" style={{ width: '100%', pointerEvents: 'none' }}>
-            Get Started
+          <button className="aesthetic-btn" style={{ width: '100%', pointerEvents: 'none', background: 'linear-gradient(90deg, #4facfe, #00f2fe)' }}>
+            Student Login
           </button>
         </div>
 
         {/* TEACHER PATH */}
         <div 
-          className="glass-card" 
           style={{ ...selectionCardStyle, border: '1px solid rgba(168, 85, 247, 0.2)' }}
           onClick={() => navigate('/teacher/login')}
           onMouseOver={(e) => {
-            e.currentTarget.style.transform = 'translateY(-15px)';
+            e.currentTarget.style.transform = 'translateY(-15px) scale(1.02)';
             e.currentTarget.style.boxShadow = '0 20px 40px rgba(168, 85, 247, 0.3)';
           }}
           onMouseOut={(e) => {
-            e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            e.currentTarget.style.boxShadow = '0 8px 32px 0 rgba(31, 38, 135, 0.37)';
           }}
         >
-          <div style={{ fontSize: '50px', color: '#a855f7' }}>
+          <div style={iconContainerStyle('#a855f7')}>
             <FaChalkboardTeacher />
           </div>
           <div>
-            <h3 style={{ margin: '0', color: '#fff' }}>Faculty Portal</h3>
+            <h3 style={{ margin: '0', color: '#fff', fontSize: '1.5rem' }}>Faculty Portal</h3>
             <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.5)', marginTop: '8px' }}>
-              Management & Analytics
+              Manage classes & view analytics
             </p>
           </div>
           <button className="aesthetic-btn" style={{ 
@@ -142,18 +155,18 @@ export default function LandingPage() {
             background: 'linear-gradient(90deg, #6366f1, #a855f7)',
             pointerEvents: 'none' 
           }}>
-            Admin Login
+            Faculty Login
           </button>
         </div>
 
       </div>
 
       {/* Footer Info */}
-      <div style={{ marginTop: '60px', color: 'rgba(255,255,255,0.3)', fontSize: '12px' }}>
-        © 2026 Smart Attendance System • Secure & Encrypted
+      <div style={{ marginTop: '80px', color: 'rgba(255,255,255,0.3)', fontSize: '13px', letterSpacing: '1px' }}>
+        SYSTEM STATUS: <span style={{ color: '#4aff4a' }}>OPERATIONAL</span>
       </div>
 
-      {/* Basic Keyframe Animations */}
+      {/* Keyframe Animations */}
       <style>{`
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-30px); }
