@@ -1,92 +1,58 @@
-/* Background gradient */
-/* 
-body{
-  margin:0;
-  font-family: 'Poppins', sans-serif;
-  background: linear-gradient(135deg,#4facfe,#00f2fe);
-  min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-} */
-
-/* Glass card */
-
-.card{
-  width:380px;
-  padding:35px;
-  border-radius:20px;
-
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(15px);
-  -webkit-backdrop-filter: blur(15px);
-
-  border:1px solid rgba(255,255,255,0.3);
-
-  box-shadow:0 8px 32px rgba(0,0,0,0.25);
-
-  text-align:center;
-  color:white;
+.card {
+  width: 380px;
+  padding: 35px;
+  border-radius: 24px;
+  /* Dark translucent glass */
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+  text-align: center;
+  color: white;
 }
 
-/* Inputs */
-
-input{
-  width:100%;
-  padding:12px;
-  margin-top:10px;
-  border:none;
-  border-radius:10px;
-
-  background: rgba(255,255,255,0.2);
-  color:white;
-  outline:none;
+input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.2);
+  color: white;
+  outline: none;
+  box-sizing: border-box;
 }
 
-input::placeholder{
-  color:#eee;
+input::placeholder {
+  color: #94a3b8;
 }
 
-/* Buttons */
-
-button{
-  width:100%;
-  padding:12px;
-  margin-top:15px;
-
-  border:none;
-  border-radius:10px;
-
-  background:linear-gradient(135deg,#667eea,#764ba2);
-  color:white;
-
-  font-weight:600;
-  cursor:pointer;
-
-  transition:0.3s;
+button {
+  width: 100%;
+  padding: 14px;
+  margin-top: 20px;
+  border: none;
+  border-radius: 12px;
+  /* Corporate Purple-Indigo Gradient */
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.3s;
 }
 
-button:hover{
-  transform:scale(1.05);
+video {
+  border-radius: 20px;
+  margin-top: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Webcam styling */
-
-video{
-  border-radius:15px;
-  margin-top:15px;
-  box-shadow:0 6px 20px rgba(0,0,0,0.3);
-}
-
-/* Student detected box */
-
-.student-box{
-  margin-top:20px;
-  padding:15px;
-  border-radius:15px;
-
-  background: rgba(255,255,255,0.15);
+.student-box {
+  margin-top: 25px;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
-
-  border:1px solid rgba(255,255,255,0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

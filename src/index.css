@@ -1,87 +1,45 @@
-/* .card{
-width:320px;
-margin:auto;
-padding:20px;
-background:white;
-border-radius:10px;
-box-shadow:0 0 10px rgba(0,0,0,0.2);
-text-align:center;
-}
-
-input{
-width:100%;
-padding:8px;
-margin-top:10px;
-border:1px solid #ccc;
-border-radius:5px;
-}
-
-.btn{
-width:100%;
-padding:10px;
-margin-top:10px;
-background:#4a90e2;
-color:white;
-border:none;
-border-radius:6px;
-cursor:pointer;
-transition:0.2s;
-}
-
-.btn:hover{
-background:#2f6fd1;
-}
-
-.btn:active{
-transform:scale(0.95);
-}
-
-.register{
-background:#28a745;
-}
-
-.register:hover{
-background:#1f7a33;
-} */
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
 
+/* :root {
+  Deep Obsidian Palette 
+  --primary-bg: #020617;
+  --secondary-bg: #0f172a;
+  --accent-color: #6366f1; /* Modern Indigo 
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f8fafc;
+} */
 :root {
-  --primary-gradient: linear-gradient(135deg, #000102 0%, #0f0816 100%);
-  --accent-color: #ff4b2b;
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-border: rgba(255, 255, 255, 0.12);
+  --primary-bg: #020617;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.1);
 }
 
 body {
-  margin: 0;
-  padding: 0;
-  font-family: 'Inter', sans-serif;
-  background: radial-gradient(circle at top right, #1a1a2e, #16213e, #0f3460);
-  background-attachment: fixed;
-  color: #ffffff;
+  margin: 0 !important; 
+  padding: 0 !important;
+  font-family: 'Inter', sans-serif !important;
+  /* Greyish Dark Background */
+  background: radial-gradient(circle at top right, #1e293b, #0f172a, #020617) !important;
+  background-attachment: fixed !important;
+  color: var(--text-primary) !important;
   min-height: 100vh;
 }
 
 /* Reusable Glass Card Styling */
 .glass-card {
   background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--glass-border);
   border-radius: 24px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   padding: 2rem;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
 }
 
 .glass-card:hover {
   transform: translateY(-5px);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-@keyframes scan {
-  0% { top: 0% }
-  50% { top: 100% }
-  100% { top: 0% }
+  border-color: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
 }
