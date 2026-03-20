@@ -1,4 +1,4 @@
-body{
+/* body{
 margin:0;
 font-family:'Poppins',sans-serif;
 
@@ -10,7 +10,7 @@ min-height:100vh;
 display:flex;
 justify-content:center;
 align-items:center;
-}
+} */
 
 @keyframes gradientMove{
 0%{background-position:0% 50%}
