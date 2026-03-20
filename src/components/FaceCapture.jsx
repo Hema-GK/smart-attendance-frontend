@@ -595,7 +595,7 @@ export default function FaceCapture({ currentClass }) {
         alert("Location access denied! GPS is required to verify you are in the classroom.");
         setMarking(false);
       },
-      { enableHighAccuracy: true, timeout: 5000 }
+      { enableHighAccuracy: true, timeout: 10000 }
     );
   };
 
