@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles/dashboard.css";
-import "frontend/src/index.css"
+// import "frontend/src/index.css"
 import "./index.css"
 import "./styles/glass.css"
 import "./styles/ui.css"
