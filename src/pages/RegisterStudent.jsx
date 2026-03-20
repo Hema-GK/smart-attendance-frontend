@@ -120,7 +120,7 @@ export default function RegisterStudent() {
           <button type="submit" className="aesthetic-btn" style={studentBtn}>CREATE ACCOUNT</button>
         </form>
 
-        <p style={{ marginTop: '20px', color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+        <p style={{ marginTop: '20px', color: 'rgba(18, 3, 3, 0.6)', fontSize: '14px' }}>
           Already registered?{" "}
           <span onClick={() => navigate('/student/login')} style={{ color: '#4facfe', cursor: 'pointer', fontWeight: 'bold' }}>
             Login here

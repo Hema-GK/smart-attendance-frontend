@@ -110,7 +110,7 @@ export default function Login() {
     <div style={containerStyle}>
       <div className="glass-card" style={cardStyle}>
         <h2 style={{ marginBottom: "10px", color: "#fff" }}>Student Login</h2>
-        <p style={{ color: "rgba(255,255,255,0.5)", fontSize: "14px", marginBottom: "20px" }}>
+        <p style={{ color: "rgba(90, 6, 106, 0.5)", fontSize: "14px", marginBottom: "20px" }}>
           Access your attendance portal
         </p>
 
@@ -138,7 +138,7 @@ export default function Login() {
           </button>
         </form>
 
-        <p style={{ marginTop: "20px", fontSize: "14px", color: "rgba(255,255,255,0.6)" }}>
+        <p style={{ marginTop: "20px", fontSize: "14px", color: "rgba(14, 2, 2, 0.6)" }}>
           Don't have an account?{" "}
           <a href="/student/register" style={{ color: "#4facfe", fontWeight: "bold", textDecoration: "none" }}>
             Register
@@ -171,10 +171,9 @@ const inputStyle = {
   margin: "10px 0",
   borderRadius: "12px",
   border: "1px solid rgba(255,255,255,0.1)",
-  background: "rgba(255,255,255,0.05)",
-  color: "white",
+  background: "rgba(255, 255, 255, 0.51)",
+  color: "black",
   fontSize: "1rem",
-  outline: "none",
 };
 
 const buttonStyle = {
