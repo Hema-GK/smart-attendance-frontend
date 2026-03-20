@@ -134,5 +134,5 @@ export default function RegisterStudent() {
 // Shared Styles (can be moved to a theme file later)
 const containerStyle = { display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', padding: '20px' };
 const formStyle = { display: 'flex', flexDirection: 'column', gap: '10px' };
-const inputStyle = { width: '100%', padding: '12px', borderRadius: '10px', background: 'rgba(255,255,255,0.1)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)'};
+const inputStyle = { width: '100%', padding: '12px', borderRadius: '10px', background: 'rgba(255, 255, 255, 0.4)', color: '#fff', border: '1px solid rgba(255,255,255,0.2)'};
 const studentBtn = { width: '100%', padding: '14px', background: 'linear-gradient(90deg, #4facfe, #00f2fe)', color: '#fff', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' };
