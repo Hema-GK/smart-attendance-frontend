@@ -209,32 +209,20 @@ export default function TeacherLogin() {
 
     setLoading(true);
     try {
-      // 1. Point to your /teachers/login route
       const res = await API.post("/teachers/login", { 
         email: email, 
         password: password 
       });
 
-      // 2. CRITICAL FIX: Match your backend's "Login success" string exactly
       if (res.data.status === "Login success") {
-        
-        // 3. Store the ID and Name your backend provides
-        const teacherData = {
-            id: res.data.teacher_id,
-            name: res.data.teacher_name,
-            role: "teacher"
-        };
-        
-        localStorage.setItem("user", JSON.stringify(teacherData));
+        // MATCHING THE KEYS: Save teacher_id so Dashboard can read it
+        localStorage.setItem("teacher_id", res.data.teacher_id);
+        localStorage.setItem("teacher_name", res.data.teacher_name);
         localStorage.setItem("role", "teacher");
 
-        alert("Login Successful! Redirecting...");
-        
-        // 4. Redirect to Dashboard
+        alert("Login Successful!");
         navigate("/teacher/dashboard");
-        
       } else {
-        // This catches "Teacher not found" or "Wrong password" from your Python file
         alert(res.data.status || "Invalid Credentials");
       }
     } catch (err) {
@@ -247,7 +235,7 @@ export default function TeacherLogin() {
 
   return (
     <div style={loginContainerStyle}>
-      <div className="glass-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '100%', textAlign: 'center' }}>
+      <div className="glass-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)', padding: '40px', borderRadius: '24px', maxWidth: '400px', width: '100%', textAlign: 'center', background: 'rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)' }}>
         <h2 style={{ color: '#fff' }}>Teacher Sign In</h2>
         <input 
           type="email" 

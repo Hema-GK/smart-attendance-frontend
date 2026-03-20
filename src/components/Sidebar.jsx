@@ -1,89 +1,63 @@
-// import { Link } from "react-router-dom"
-// import { FaChartBar, FaHistory, FaHome } from "react-icons/fa"
+import { Link, useNavigate } from "react-router-dom";
+import { LayoutDashboard, BarChart3, History, LogOut } from "lucide-react";
 
-// export default function Sidebar(){
+const sidebarStyle = {
+  width: "260px",
+  background: "#0f172a",
+  borderRight: "1px solid rgba(255,255,255,0.1)",
+  display: "flex",
+  flexDirection: "column",
+  padding: "20px"
+};
 
-// return(
-
-// <div style={{
-// width:"240px",
-// background:"rgba(15,23,42,0.95)",
-// color:"white",
-// padding:"25px",
-// display:"flex",
-// flexDirection:"column",
-// gap:"25px",
-// height:"100vh",
-// backdropFilter:"blur(10px)"
-// }}>
-
-// <h2 style={{marginBottom:"20px"}}>Teacher Panel</h2>
-
-// <Link to="/teacher/dashboard" style={{color:"white",textDecoration:"none"}}>
-// <FaHome/> Dashboard
-// </Link>
-
-// <Link to="/teacher/analytics" style={{color:"white",textDecoration:"none"}}>
-// <FaChartBar/> Analytics
-// </Link>
-
-// <Link to="/teacher/history" style={{color:"white",textDecoration:"none"}}>
-// <FaHistory/> Attendance History
-// </Link>
-
-// </div>
-
-// )
-
-// }
-
-import { Link, useLocation } from "react-router-dom"
-import { FaChartBar, FaHistory, FaHome } from "react-icons/fa"
+const linkStyle = {
+  display: "flex",
+  alignItems: "center",
+  gap: "12px",
+  padding: "12px",
+  color: "#94a3b8",
+  textDecoration: "none",
+  borderRadius: "8px",
+  transition: "0.3s",
+  marginBottom: "8px"
+};
 
 export default function Sidebar() {
-  const location = useLocation();
+  const navigate = useNavigate();
+  const teacherName = localStorage.getItem("teacher_name") || "Faculty";
 
-  const linkStyle = (path) => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '15px',
-    padding: '12px 20px',
-    borderRadius: '12px',
-    color: 'white',
-    textDecoration: 'none',
-    transition: '0.3s',
-    background: location.pathname === path ? 'rgba(255,255,255,0.1)' : 'transparent',
-    fontWeight: location.pathname === path ? '700' : '400',
-    border: location.pathname === path ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent'
-  });
+  const handleLogout = () => {
+    localStorage.clear();
+    navigate("/teacher/login");
+  };
 
   return (
-    <div style={{
-      width: "260px",
-      background: "rgba(15, 23, 42, 0.4)",
-      backdropFilter: "blur(20px)",
-      borderRight: "1px solid rgba(255,255,255,0.1)",
-      padding: "30px 20px",
-      display: "flex",
-      flexDirection: "column",
-      gap: "10px",
-      height: "100vh"
-    }}>
-      <div style={{ marginBottom: '40px', paddingLeft: '10px' }}>
-        <h2 style={{ fontSize: '1.2rem', letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.8 }}>Teacher Panel</h2>
+    <div style={sidebarStyle}>
+      <div style={{ marginBottom: "40px", padding: "0 12px" }}>
+        <h2 style={{ color: "white", fontSize: "1.5rem" }}>Attendify</h2>
+        <p style={{ color: "#6366f1", fontSize: "0.8rem", fontWeight: "bold" }}>{teacherName}</p>
       </div>
 
-      <Link to="/teacher/dashboard" style={linkStyle("/teacher/dashboard")}>
-        <FaHome /> Dashboard
-      </Link>
+      <nav style={{ flex: 1 }}>
+        <Link to="/teacher/dashboard" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+          <LayoutDashboard size={20} /> Dashboard
+        </Link>
+        
+        <Link to="/teacher/analytics" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+          <BarChart3 size={20} /> Analytics
+        </Link>
 
-      <Link to="/teacher/analytics" style={linkStyle("/teacher/analytics")}>
-        <FaChartBar /> Analytics
-      </Link>
+        <Link to="/teacher/history" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+          <History size={20} /> History
+        </Link>
+      </nav>
 
-      <Link to="/teacher/history" style={linkStyle("/teacher/history")}>
-        <FaHistory /> History
-      </Link>
+      <button 
+        onClick={handleLogout}
+        style={{ ...linkStyle, border: "none", background: "none", cursor: "pointer", color: "#ef4444", marginTop: "auto" }}
+      >
+        <LogOut size={20} /> Logout
+      </button>
     </div>
-  )
+  );
 }

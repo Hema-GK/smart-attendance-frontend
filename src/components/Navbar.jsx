@@ -1,41 +1,38 @@
-export default function Navbar(){
+import { Bell, UserCircle } from "lucide-react";
 
-const logout = ()=>{
+const navbarStyle = {
+  height: "70px",
+  background: "rgba(15, 23, 42, 0.8)",
+  backdropFilter: "blur(10px)",
+  borderBottom: "1px solid rgba(255,255,255,0.1)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  padding: "0 30px",
+  color: "white"
+};
 
-localStorage.removeItem("teacher_id")
-window.location.href="/teacher/login"
+export default function Navbar() {
+  const teacherName = localStorage.getItem("teacher_name") || "Faculty Member";
 
-}
+  return (
+    <nav style={navbarStyle}>
+      <div>
+        <span style={{ color: "gray" }}>Portal / </span>
+        <span style={{ fontWeight: "500" }}>Faculty Dashboard</span>
+      </div>
 
-return(
-
-<div style={{
-background:"#0f172a",
-color:"white",
-padding:"15px 30px",
-display:"flex",
-justifyContent:"space-between",
-alignItems:"center",
-boxShadow:"0px 2px 10px rgba(0,0,0,0.4)"
-}}>
-
-<h2>Smart Attendance System</h2>
-
-<button
-onClick={logout}
-style={{
-background:"#ef4444",
-border:"none",
-padding:"7px 15px",
-borderRadius:"6px",
-color:"white"
-}}
->
-Logout
-</button>
-
-</div>
-
-)
-
+      <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+        <Bell size={20} style={{ cursor: "pointer", color: "#94a3b8" }} />
+        
+        <div style={{ display: "flex", alignItems: "center", gap: "10px", borderLeft: "1px solid #334155", paddingLeft: "20px" }}>
+          <div style={{ textAlign: "right" }}>
+            <p style={{ fontSize: "0.9rem", margin: 0 }}>{teacherName}</p>
+            <p style={{ fontSize: "0.7rem", color: "#22c55e", margin: 0 }}>Active Now</p>
+          </div>
+          <UserCircle size={32} color="#6366f1" />
+        </div>
+      </div>
+    </nav>
+  );
 }
