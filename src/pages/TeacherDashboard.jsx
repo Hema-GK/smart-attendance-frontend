@@ -691,7 +691,6 @@
 //   );
 // }
 
-
 import { useEffect, useState } from "react";
 import API from "../api/api";
 import Sidebar from "../components/Sidebar";
@@ -725,10 +724,7 @@ export default function TeacherDashboard() {
   };
 
   useEffect(() => {
-    if (!teacher_id) {
-      window.location.href = "/teacher/login";
-      return;
-    }
+    if (!teacher_id) { window.location.href = "/teacher/login"; return; }
     fetchClasses();
     const interval = setInterval(fetchClasses, 60000);
     return () => clearInterval(interval);
@@ -744,94 +740,71 @@ export default function TeacherDashboard() {
       });
       setMarks(m);
     } catch (err) {
-      alert("Failed to load attendance records.");
-    }
-  };
-
-  const handleUpdateRoom = async () => {
-    try {
-      const res = await API.post("/teachers/update-classroom", {
-        timetable_id: selectedClass.id,
-        classroom_name: newRoomName
-      });
-      if (res.data.status === "success") {
-        setShowModal(false);
-        fetchClasses();
-      } else {
-        alert(res.data.message);
-      }
-    } catch (err) {
-      alert("Room update failed.");
+      alert("Failed to load records.");
     }
   };
 
   if (loading) return <div style={{ background: "#020617", height: "100vh", color: "white", padding: "50px" }}>Initializing...</div>;
 
   return (
-    <div className="dashboard-container">
+    <div className="app-container">
       
-      {/* 1. SIDEBAR WITH MOBILE OVERLAY LOGIC */}
-      <div className={`sidebar-wrapper ${sidebarOpen ? "open" : ""}`}>
+      {/* 1. SIDEBAR (Hidden off-screen on mobile) */}
+      <aside className={`sidebar-container ${sidebarOpen ? "active" : ""}`}>
         <Sidebar toggle={() => setSidebarOpen(false)} />
-      </div>
+      </aside>
 
-      {/* 2. CLICKABLE BACKDROP (Closes sidebar when clicking outside) */}
-      {sidebarOpen && <div className="backdrop" onClick={() => setSidebarOpen(false)} />}
+      {/* 2. OVERLAY (Dims background when sidebar is open) */}
+      {sidebarOpen && <div className="app-overlay" onClick={() => setSidebarOpen(false)} />}
 
-      {/* 3. MAIN CONTENT AREA */}
-      <div className="main-content">
-        <header className="mobile-header">
-           <button onClick={() => setSidebarOpen(true)} className="icon-btn">
-             <Menu size={24} />
-           </button>
-           <Navbar />
+      {/* 3. MAIN CONTENT */}
+      <div className="main-wrapper">
+        <header className="app-header">
+          <button className="menu-trigger" onClick={() => setSidebarOpen(true)}>
+            <Menu size={24} />
+          </button>
+          <Navbar />
         </header>
 
-        <main className="content-padding">
-          <div className="header-row">
+        <main className="main-content">
+          <div className="section-title">
             <h2>Today's Schedule</h2>
-            <div className="sync-text">
-              <RefreshCw size={12} /> {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-            </div>
+            <span><RefreshCw size={12} /> {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
           </div>
 
-          <div className="class-grid">
+          <div className="card-grid">
             {classes.map((c) => {
-               const now = new Date().toLocaleTimeString('it-IT'); 
-               const isLive = now >= c.start_time && now <= c.end_time;
-               return (
-                <div key={c.id} className={`glass-card ${isLive ? 'live-border' : ''}`}>
-                  {isLive && <div className="live-tag">LIVE</div>}
+              const now = new Date().toLocaleTimeString('it-IT');
+              const isLive = now >= c.start_time && now <= c.end_time;
+              return (
+                <div key={c.id} className={`glass-card ${isLive ? 'live-mode' : ''}`}>
+                  {isLive && <div className="status-badge">LIVE</div>}
                   <h3>{c.subject}</h3>
-                  <p className="time-text"><Clock size={14} /> {c.start_time.split('.')[0]} - {c.end_time.split('.')[0]}</p>
-                  <p className="room-text">Room: <span>{c.classroom}</span></p>
-                  
-                  <div className="card-actions">
-                    <button onClick={() => loadAttendance(c.id)} className="btn-primary">View</button>
-                    <button onClick={() => { setSelectedClass(c); setNewRoomName(c.classroom); setShowModal(true); }} className="btn-secondary">Set</button>
+                  <p className="sub-text"><Clock size={14} /> {c.start_time.split('.')[0]} - {c.end_time.split('.')[0]}</p>
+                  <p className="sub-text">Room: <span className="highlight">{c.classroom}</span></p>
+                  <div className="action-row">
+                    <button onClick={() => loadAttendance(c.id)} className="p-btn">View</button>
+                    <button onClick={() => { setSelectedClass(c); setShowModal(true); }} className="s-btn">Set</button>
                   </div>
                 </div>
-               );
+              );
             })}
           </div>
 
-          {/* Records Table Section */}
           {records.length > 0 && (
-            <div className="glass-card table-section">
+            <div className="glass-card table-box">
               <h3>Performance Entry</h3>
-              <div className="scroll-wrapper">
+              <div className="table-scroll">
                 <table>
-                  <thead>
-                    <tr><th>ID</th><th>Status</th><th>CIE1</th><th>CIE2</th><th>SEE</th></tr>
-                  </thead>
+                  <thead><tr><th>ID</th><th>Status</th><th>CIE1</th><th>CIE2</th><th>SEE</th></tr></thead>
                   <tbody>
                     {records.map((r, i) => (
                       <tr key={i}>
                         <td>{r.student_id}</td>
                         <td style={{ color: r.status === "Present" ? "#22c55e" : "#ef4444" }}>{r.status}</td>
-                        <td><input type="number" className="m-input" value={marks[r.student_id]?.cie1} /></td>
-                        <td><input type="number" className="m-input" value={marks[r.student_id]?.cie2} /></td>
-                        <td><input type="number" className="m-input" value={marks[r.student_id]?.see} /></td>
+                        <td><input className="mini-input" value={marks[r.student_id]?.cie1} readOnly /></td>
+                        <td><input className="mini-input" value={marks[r.student_id]?.cie2} readOnly /></td>
+                        <td><input className="mini-input" value={marks[r.student_id]?.see} readOnly /></td>
                       </tr>
                     ))}
                   </tbody>
@@ -843,46 +816,47 @@ export default function TeacherDashboard() {
       </div>
 
       <style>{`
-        .dashboard-container { display: flex; min-height: 100vh; background: #020617; color: white; }
+        .app-container { display: flex; min-height: 100vh; background: #020617; color: white; font-family: sans-serif; }
         
-        /* Sidebar Fix */
-        .sidebar-wrapper { width: 260px; height: 100vh; position: sticky; top: 0; transition: 0.3s; z-index: 1000; }
+        /* Desktop Sidebar */
+        .sidebar-container { width: 260px; height: 100vh; position: sticky; top: 0; background: #0f172a; z-index: 1000; transition: transform 0.3s ease; }
         
-        .main-content { flex: 1; min-width: 0; position: relative; }
-        .mobile-header { display: flex; align-items: center; padding: 10px 20px; background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(10px); position: sticky; top: 0; z-index: 500; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .icon-btn { background: none; border: none; color: white; cursor: pointer; margin-right: 15px; display: none; }
-
-        .content-padding { padding: 20px; }
-        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .header-row h2 { font-size: 1.4rem; margin: 0; }
-        .sync-text { display: flex; align-items: center; gap: 5px; color: #94a3b8; font-size: 0.75rem; }
-
-        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
-        .glass-card { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 20px; position: relative; }
-        .live-border { border-color: #6366f1; box-shadow: 0 0 15px rgba(99, 102, 241, 0.2); }
-        .live-tag { position: absolute; top: 12px; right: 12px; background: #22c55e; color: black; font-size: 0.6rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; }
+        /* Main Layout */
+        .main-wrapper { flex: 1; min-width: 0; display: flex; flexDirection: column; }
+        .app-header { display: flex; align-items: center; padding: 10px 20px; background: rgba(15, 23, 42, 0.9); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(255,255,255,0.05); position: sticky; top: 0; z-index: 800; }
+        .menu-trigger { background: none; border: none; color: white; margin-right: 15px; cursor: pointer; display: none; }
         
-        .time-text, .room-text { font-size: 0.85rem; color: #94a3b8; margin: 5px 0; display: flex; align-items: center; gap: 8px; }
-        .room-text span { color: #6366f1; font-weight: bold; }
+        .main-content { padding: 20px; }
+        .section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title h2 { font-size: 1.25rem; margin: 0; }
+        .section-title span { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 4px; }
 
-        .card-actions { display: flex; gap: 10px; margin-top: 15px; }
-        .btn-primary { flex: 1; background: #6366f1; border: none; color: white; padding: 10px; border-radius: 8px; font-weight: 600; }
-        .btn-secondary { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 10px; border-radius: 8px; }
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+        .glass-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 16px; position: relative; }
+        .live-mode { border-color: #6366f1; }
+        .status-badge { position: absolute; top: 12px; right: 12px; background: #22c55e; color: black; font-size: 0.6rem; font-weight: bold; padding: 2px 6px; border-radius: 4px; }
+        
+        .sub-text { font-size: 0.85rem; color: #94a3b8; margin: 6px 0; display: flex; align-items: center; gap: 6px; }
+        .highlight { color: #6366f1; font-weight: bold; }
+        
+        .action-row { display: flex; gap: 8px; margin-top: 16px; }
+        .p-btn { flex: 1; background: #6366f1; border: none; color: white; padding: 8px; border-radius: 6px; font-weight: 600; cursor: pointer; }
+        .s-btn { flex: 1; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: white; padding: 8px; border-radius: 6px; cursor: pointer; }
 
-        .table-section { margin-top: 30px; }
-        .scroll-wrapper { overflow-x: auto; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; min-width: 450px; font-size: 0.85rem; }
-        th { text-align: left; color: #94a3b8; padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .table-box { margin-top: 24px; }
+        .table-scroll { overflow-x: auto; margin-top: 12px; }
+        table { width: 100%; border-collapse: collapse; min-width: 400px; font-size: 0.8rem; }
+        th { text-align: left; padding: 10px; color: #94a3b8; border-bottom: 1px solid rgba(255,255,255,0.05); }
         td { padding: 10px; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .m-input { width: 45px; background: #020617; border: 1px solid #334155; color: white; padding: 4px; border-radius: 4px; text-align: center; }
+        .mini-input { width: 40px; background: #020617; border: 1px solid #334155; color: white; text-align: center; border-radius: 4px; }
 
-        /* MOBILE OVERRIDES */
+        /* MOBILE OPTIMIZATION */
         @media (max-width: 768px) {
-          .sidebar-wrapper { position: fixed; left: -260px; top: 0; z-index: 2000; }
-          .sidebar-wrapper.open { left: 0; }
-          .backdrop { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1500; }
-          .icon-btn { display: block; }
-          .class-grid { grid-template-columns: 1fr; }
+          .menu-trigger { display: block; }
+          .sidebar-container { position: fixed; left: 0; transform: translateX(-100%); z-index: 2000; }
+          .sidebar-container.active { transform: translateX(0); }
+          .app-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1500; }
+          .card-grid { grid-template-columns: 1fr; }
         }
       `}</style>
     </div>
