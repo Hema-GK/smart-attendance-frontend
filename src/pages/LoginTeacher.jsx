@@ -208,40 +208,38 @@ export default function TeacherLogin() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Please enter both email and password.");
+      alert("Please fill in all fields");
       return;
     }
 
     setLoading(true);
     try {
-      // Step 1: Hit the login endpoint
+      // FIXED: Changed endpoint to /teachers/login to match your teacher_routes.py
       const res = await API.post("/teachers/login", { 
         email: email, 
         password: password 
       });
 
-      // Step 2: Validate the response
-      if (res.data.status === "success") {
-        const user = res.data.user;
+      // Your backend returns "Login success" (not "success")
+      if (res.data.status === "Login success") {
+        // Save teacher data
+        const teacherData = {
+            id: res.data.teacher_id,
+            name: res.data.teacher_name,
+            role: "teacher"
+        };
         
-        // Critical: Store the entire user object and the role separately for easy access
-        localStorage.setItem("user", JSON.stringify(user));
-        localStorage.setItem("role", user.role);
+        localStorage.setItem("user", JSON.stringify(teacherData));
+        localStorage.setItem("role", "teacher");
 
-        // Step 3: Role-based redirection
-        if (user.role === "teacher") {
-          navigate("/teacher/dashboard");
-        } else {
-          alert("Access Denied: This credentials belong to a student account.");
-          localStorage.clear(); 
-        }
+        navigate("/teacher/dashboard");
       } else {
-        // This handles the "Incorrect Credentials" message from backend
-        alert(res.data.message || "Invalid Email or Password");
+        // This will now catch "Teacher not found" or "Wrong password"
+        alert(res.data.status || "Invalid Credentials");
       }
     } catch (err) {
       console.error("Login Error:", err);
-      alert("Server Error: Ensure your backend is running and the database is connected.");
+      alert("Login failed. Check if backend is running.");
     } finally {
       setLoading(false);
     }
