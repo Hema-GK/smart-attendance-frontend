@@ -15,14 +15,17 @@ export default function AnalyticsPage() {
 
   const [data, setData] = useState([])
 
-  useEffect(() => {
-
-    API.get("/attendance/analytics")
-      .then(res => setData(res.data))
-      .catch(err => console.log(err))
-
-  }, [])
-
+  // Inside your AttendanceHistory.jsx
+useEffect(() => {
+  const studentData = JSON.parse(localStorage.getItem("student")); // Ensure key matches your login save
+  if (studentData && studentData.id) {
+    API.get(`/attendance/student/${studentData.id}`)
+      .then(res => {
+        setHistory(res.data);
+      })
+      .catch(err => console.error("History fetch error:", err));
+  }
+}, []);
   return (
     <div style={{ padding: "20px" }}>
 

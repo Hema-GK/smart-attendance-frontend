@@ -159,8 +159,10 @@
 // }
 
 
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../api/api"; // Ensure this path points to your axios instance
 
 // --- CORPORATE GLASS STYLING ---
 const loginContainerStyle = {
@@ -168,7 +170,8 @@ const loginContainerStyle = {
   justifyContent: 'center',
   alignItems: 'center',
   height: '100vh',
-  padding: '20px'
+  padding: '20px',
+  background: '#0b0e14' // Dark background to make glass effect pop
 };
 
 const inputStyle = {
@@ -177,7 +180,7 @@ const inputStyle = {
   margin: '10px 0',
   borderRadius: '12px',
   border: '1px solid rgba(255,255,255,0.1)',
-  background: 'rgba(255,255,255,0.05)', // Slightly lighter for contrast
+  background: 'rgba(255,255,255,0.05)',
   color: 'white',
   outline: 'none',
   fontSize: '1rem',
@@ -189,31 +192,73 @@ const corporateButtonStyle = {
   padding: '14px',
   borderRadius: '12px',
   border: 'none',
-  // Deep Indigo to Purple Gradient
   background: 'linear-gradient(90deg, #6366f1, #a855f7)', 
   color: 'white',
   fontWeight: '700',
   letterSpacing: '1px',
   cursor: 'pointer',
   boxShadow: '0 4px 15px rgba(99, 102, 241, 0.4)',
-  marginTop: '20px'
+  marginTop: '20px',
+  transition: 'transform 0.2s ease'
 };
 
 export default function TeacherLogin() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    // Your login logic here (e.g., API call)
-    // On success:
-    localStorage.setItem("role", "teacher");
-    navigate("/teacher/dashboard");
+    if (!email || !password) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Calling your existing backend login endpoint
+      const res = await API.post("/students/login", { 
+        email: email, 
+        password: password 
+      });
+
+      if (res.data.status === "success") {
+        const user = res.data.user;
+        
+        // Save user details for session management
+        localStorage.setItem("user", JSON.stringify(user));
+        localStorage.setItem("role", user.role);
+
+        // Redirect based on role returned from DB
+        if (user.role === "teacher") {
+          navigate("/teacher/dashboard");
+        } else {
+          alert("Access Denied: This portal is for Faculty only.");
+          localStorage.clear(); // Security: don't let students stay logged in here
+        }
+      } else {
+        alert(res.data.message || "Invalid Credentials");
+      }
+    } catch (err) {
+      console.error("Login Error:", err);
+      alert("Login failed. Check if backend is running or credentials are correct.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div style={loginContainerStyle}>
-      <div className="glass-card" style={{ border: '1px solid rgba(168, 85, 247, 0.3)' }}>
+      <div className="glass-card" style={{ 
+        border: '1px solid rgba(168, 85, 247, 0.3)',
+        padding: '40px',
+        borderRadius: '24px',
+        background: 'rgba(255, 255, 255, 0.03)',
+        backdropFilter: 'blur(10px)',
+        maxWidth: '400px',
+        width: '100%',
+        textAlign: 'center'
+      }}>
         <div style={{ marginBottom: '20px' }}>
             <span style={{ 
                 background: 'rgba(168, 85, 247, 0.2)', 
@@ -256,10 +301,11 @@ export default function TeacherLogin() {
         <button 
             style={corporateButtonStyle}
             onClick={handleLogin}
+            disabled={loading}
             onMouseOver={(e) => e.target.style.transform = 'scale(1.02)'}
             onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
         >
-          ENTER DASHBOARD
+          {loading ? "AUTHENTICATING..." : "ENTER DASHBOARD"}
         </button>
 
         <div style={{ marginTop: '20px', fontSize: '13px' }}>
