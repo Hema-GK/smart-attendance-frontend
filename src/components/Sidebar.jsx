@@ -1,28 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
-import { LayoutDashboard, BarChart3, History, LogOut } from "lucide-react";
+import { LayoutDashboard, BarChart3, History, LogOut, X } from "lucide-react";
 
-const sidebarStyle = {
-  width: "260px",
-  background: "#0f172a",
-  borderRight: "1px solid rgba(255,255,255,0.1)",
-  display: "flex",
-  flexDirection: "column",
-  padding: "20px"
-};
-
-const linkStyle = {
-  display: "flex",
-  alignItems: "center",
-  gap: "12px",
-  padding: "12px",
-  color: "#94a3b8",
-  textDecoration: "none",
-  borderRadius: "8px",
-  transition: "0.3s",
-  marginBottom: "8px"
-};
-
-export default function Sidebar() {
+export default function Sidebar({ toggle }) { // Added toggle prop
   const navigate = useNavigate();
   const teacherName = localStorage.getItem("teacher_name") || "Faculty";
 
@@ -31,23 +10,60 @@ export default function Sidebar() {
     navigate("/teacher/login");
   };
 
+  const sidebarStyle = {
+    width: "100%", // Changed to 100% to fill the wrapper
+    height: "100vh",
+    background: "#0f172a",
+    borderRight: "1px solid rgba(255,255,255,0.1)",
+    display: "flex",
+    flexDirection: "column",
+    padding: "20px",
+    position: "relative"
+  };
+
+  const linkStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "12px",
+    padding: "12px",
+    color: "#94a3b8",
+    textDecoration: "none",
+    borderRadius: "8px",
+    transition: "0.3s",
+    marginBottom: "8px"
+  };
+
   return (
     <div style={sidebarStyle}>
+      {/* --- MOBILE CLOSE BUTTON --- */}
+      <button 
+        onClick={toggle} 
+        className="sidebar-close-btn"
+        style={{
+          position: "absolute", top: "20px", right: "20px",
+          background: "rgba(255,255,255,0.05)", border: "none",
+          color: "white", padding: "5px", borderRadius: "5px",
+          cursor: "pointer", display: "none" // Hidden by default (Desktop)
+        }}
+      >
+        <X size={24} />
+      </button>
+
       <div style={{ marginBottom: "40px", padding: "0 12px" }}>
-        <h2 style={{ color: "white", fontSize: "1.5rem" }}>Attendify</h2>
-        <p style={{ color: "#6366f1", fontSize: "0.8rem", fontWeight: "bold" }}>{teacherName}</p>
+        <h2 style={{ color: "white", fontSize: "1.5rem", margin: "0" }}>Attendify</h2>
+        <p style={{ color: "#6366f1", fontSize: "0.8rem", fontWeight: "bold", marginTop: "5px" }}>{teacherName}</p>
       </div>
 
       <nav style={{ flex: 1 }}>
-        <Link to="/teacher/dashboard" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+        <Link to="/teacher/dashboard" style={linkStyle} onClick={toggle}>
           <LayoutDashboard size={20} /> Dashboard
         </Link>
         
-        <Link to="/teacher/analytics" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+        <Link to="/teacher/analytics" style={linkStyle} onClick={toggle}>
           <BarChart3 size={20} /> Analytics
         </Link>
 
-        <Link to="/teacher/history" style={linkStyle} onMouseEnter={(e) => e.target.style.color = "white"}>
+        <Link to="/teacher/history" style={linkStyle} onClick={toggle}>
           <History size={20} /> History
         </Link>
       </nav>
@@ -58,6 +74,15 @@ export default function Sidebar() {
       >
         <LogOut size={20} /> Logout
       </button>
+
+      {/* Internal CSS for the Close Button Visibility */}
+      <style>{`
+        @media (max-width: 768px) {
+          .sidebar-close-btn { display: block !important; }
+        }
+        /* Hover effects */
+        a:hover { color: white !important; background: rgba(255,255,255,0.05); }
+      `}</style>
     </div>
   );
 }

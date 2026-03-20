@@ -22,8 +22,10 @@ body {
   /* Greyish Dark Background */
   background: radial-gradient(circle at top right, #1e293b, #0f172a, #020617) !important;
   background-attachment: fixed !important;
-  color: var(--text-primary) !important;
+  /* color: var(--text-primary) !important; */
+  color: white !important;
   min-height: 100vh;
+  overflow-x:hidden;
 }
 
 /* Reusable Glass Card Styling */
@@ -42,4 +44,28 @@ body {
   transform: translateY(-5px);
   border-color: rgba(255, 255, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* 2. Fix the Sidebar Overlap */
+.sidebar-wrapper {
+  position: fixed;
+  top: 0;
+  left: -100%; /* Hidden by default */
+  width: 260px;
+  height: 100vh;
+  z-index: 999;
+  transition: 0.3s ease-in-out;
+  background: #0f172a; 
+}
+
+.sidebar-wrapper.open {
+  left: 0; /* Slide in when open */
+  box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+}
+
+/* 3. Responsive Table Fix */
+.table-container {
+  width: 100%;
+  overflow-x: auto; /* Allows swiping the marks table on mobile */
+  -webkit-overflow-scrolling: touch;
 }

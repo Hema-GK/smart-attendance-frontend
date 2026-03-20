@@ -42,7 +42,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-container" style={styles.container}>
-      <h1 style={styles.title}>Smart <span style={{color: '#020b12'}}>Attendance</span></h1>
+      <h1 style={styles.title}>Smart <span style={{color: '#700ca6'}}>Attendance</span></h1>
       
       <div style={styles.cardWrapper}>
         {/* STUDENT -> Goes to Register */}
@@ -54,7 +54,7 @@ export default function LandingPage() {
 
         {/* TEACHER -> Goes to Register */}
         <div className="glass-card" style={styles.card} onClick={() => navigate('/teacher/register')}>
-          <FaChalkboardTeacher style={{fontSize: '50px', color: '#0b0412'}} />
+          <FaChalkboardTeacher style={{fontSize: '50px', color: '#4f0797'}} />
           <h3>Faculty</h3>
           <button className="aesthetic-btn" style={styles.btnPurple}>Join Portal</button>
         </div>
@@ -76,6 +76,6 @@ const styles = {
   cardWrapper: { display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center' },
   card: { width: '250px', padding: '30px', cursor: 'pointer', transition: '0.3s' },
   btnBlue: { background: 'linear-gradient(90deg, #4facfe, #00f2fe)', width: '100%', border: 'none', padding: '10px', borderRadius: '8px', color: '#fff', fontWeight: 'bold' },
-  btnPurple: { background: 'linear-gradient(90deg, #6366f1, #a855f7)', width: '100%', border: 'none', padding: '10px', borderRadius: '8px', color: '#fff', fontWeight: 'bold' },
+  btnPurple: { background: "radial-gradient(circle at top right, #1e293b, #0f172a, #020617)", width: '100%', border: 'none', padding: '10px', borderRadius: '8px', color: '#fff', fontWeight: 'bold' },
   btnGold: { background: 'linear-gradient(90deg, #f59e0b, #d97706)', width: '100%', border: 'none', padding: '10px', borderRadius: '8px', color: '#fff', fontWeight: 'bold' }
 };

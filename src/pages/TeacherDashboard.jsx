@@ -455,7 +455,6 @@ export default function TeacherDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [lastSynced, setLastSynced] = useState(new Date());
 
-  // Modal State
   const [showModal, setShowModal] = useState(false);
   const [selectedClass, setSelectedClass] = useState(null);
   const [newRoomName, setNewRoomName] = useState("");
@@ -479,10 +478,7 @@ export default function TeacherDashboard() {
       window.location.href = "/teacher/login";
       return;
     }
-
     fetchClasses();
-
-    // Auto-refresh every 60 seconds
     const interval = setInterval(fetchClasses, 60000);
     return () => clearInterval(interval);
   }, [teacher_id]);
@@ -535,35 +531,42 @@ export default function TeacherDashboard() {
   if (loading) return <div style={{ background: "#020617", height: "100vh", color: "white", padding: "50px" }}>Initializing...</div>;
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#020617", position: "relative" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#020617", position: "relative", overflowX: "hidden" }}>
       
-      {/* Mobile Toggle */}
+      {/* 1. DARK OVERLAY FOR MOBILE SIDEBAR */}
+      {sidebarOpen && (
+        <div 
+          className="sidebar-overlay"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* 2. MOBILE TOGGLE BUTTON */}
       <button 
         onClick={() => setSidebarOpen(!sidebarOpen)}
-        style={{ position: "fixed", top: "20px", left: "20px", zIndex: 100, background: "none", border: "none", color: "white" }}
-        className="mobile-toggle"
+        className="mobile-toggle-btn"
       >
-        {sidebarOpen ? <X size={28} /> : <Menu size={28} />}
+        {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
-      {/* Sidebar with mobile logic */}
+      {/* 3. SIDEBAR WRAPPER */}
       <div className={`sidebar-wrapper ${sidebarOpen ? "open" : ""}`}>
         <Sidebar />
       </div>
 
-      <div style={{ flex: 1, width: "100%" }}>
+      {/* 4. MAIN CONTENT AREA */}
+      <div className="main-content">
         <Navbar />
 
-        <main style={{ padding: "30px", marginTop: "40px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px" }}>
-            <h2 style={{ color: "white", margin: 0 }}>Today's Schedule</h2>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#94a3b8", fontSize: "0.8rem" }}>
-              <RefreshCw size={14} className="spin-hover" />
+        <main style={{ padding: "20px", marginTop: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "25px", flexWrap: "wrap", gap: "10px" }}>
+            <h2 style={{ color: "white", margin: 0, fontSize: "1.5rem" }}>Today's Schedule</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#94a3b8", fontSize: "0.75rem" }}>
+              <RefreshCw size={14} />
               Last sync: {lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </div>
           </div>
 
-          {/* Classes Grid */}
           <div className="class-grid">
             {classes.length > 0 ? classes.map((c) => {
                const now = new Date().toLocaleTimeString('it-IT'); 
@@ -573,60 +576,50 @@ export default function TeacherDashboard() {
                 <div key={c.id} className="glass-card" style={{ 
                   padding: "20px", 
                   border: isLive ? "1px solid #6366f1" : "1px solid rgba(255,255,255,0.1)",
-                  position: "relative",
-                  overflow: "hidden"
+                  position: "relative"
                 }}>
                   {isLive && <div className="live-indicator">LIVE</div>}
-                  <h3 style={{ margin: "0 0 10px 0", color: "white" }}>{c.subject}</h3>
-                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#94a3b8", marginBottom: "5px" }}>
+                  <h3 style={{ margin: "0 0 10px 0", color: "white", fontSize: "1.1rem" }}>{c.subject}</h3>
+                  <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "#94a3b8", marginBottom: "8px", fontSize: "0.85rem" }}>
                     <Clock size={14} /> {c.start_time} - {c.end_time}
                   </div>
-                  <p style={{ color: "white" }}>Room: <b style={{ color: "#6366f1" }}>{c.classroom}</b></p>
+                  <p style={{ color: "white", fontSize: "0.9rem" }}>Room: <b style={{ color: "#6366f1" }}>{c.classroom}</b></p>
                   
-                  <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
+                  <div style={{ marginTop: "15px", display: "flex", gap: "10px" }}>
                     <button onClick={() => loadAttendance(c.id)} className="btn-primary">View</button>
-                    <button onClick={() => { setSelectedClass(c); setNewRoomName(c.classroom); setShowModal(true); }} className="btn-secondary">Set Classroom</button>
+                    <button onClick={() => { setSelectedClass(c); setNewRoomName(c.classroom); setShowModal(true); }} className="btn-secondary">Set</button>
                   </div>
                 </div>
                );
             }) : <p style={{ color: "gray" }}>No more classes for today.</p>}
           </div>
 
-          {/* Attendance Section */}
           {records.length > 0 && (
-            <section className="glass-card" style={{ marginTop: "40px", padding: "25px" }}>
-              <h3 style={{ color: "white", borderBottom: "1px solid #1e293b", paddingBottom: "15px" }}>Student Performance Entry</h3>
-              <div style={{ overflowX: "auto" }}>
-                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "10px" }}>
+            <section className="glass-card" style={{ marginTop: "30px", padding: "20px" }}>
+              <h3 style={{ color: "white", borderBottom: "1px solid #1e293b", paddingBottom: "10px", fontSize: "1rem" }}>Performance Entry</h3>
+              <div className="table-responsive">
+                <table style={{ width: "100%", borderCollapse: "collapse", marginTop: "10px", minWidth: "500px" }}>
                   <thead>
-                    <tr style={{ textAlign: "left", color: "#94a3b8", fontSize: "0.85rem" }}>
-                      <th style={{ padding: "12px" }}>Student ID</th>
-                      <th style={{ padding: "12px" }}>Status</th>
-                      <th style={{ padding: "12px" }}>CIE 1</th>
-                      <th style={{ padding: "12px" }}>CIE 2</th>
-                      <th style={{ padding: "12px" }}>SEE</th>
-                      <th style={{ padding: "12px" }}>Action</th>
+                    <tr style={{ textAlign: "left", color: "#94a3b8", fontSize: "0.75rem" }}>
+                      <th style={{ padding: "10px" }}>Student ID</th>
+                      <th style={{ padding: "10px" }}>Status</th>
+                      <th style={{ padding: "10px" }}>CIE 1</th>
+                      <th style={{ padding: "10px" }}>CIE 2</th>
+                      <th style={{ padding: "10px" }}>SEE</th>
+                      <th style={{ padding: "10px" }}>Action</th>
                     </tr>
                   </thead>
                   <tbody>
                     {records.map((r, i) => (
-                      <tr key={i} style={{ borderBottom: "1px solid #1e293b", color: "white" }}>
-                        <td style={{ padding: "12px" }}>{r.student_id}</td>
-                        <td style={{ padding: "12px" }}>
+                      <tr key={i} style={{ borderBottom: "1px solid #1e293b", color: "white", fontSize: "0.85rem" }}>
+                        <td style={{ padding: "10px" }}>{r.student_id}</td>
+                        <td style={{ padding: "10px" }}>
                           <span style={{ color: r.status === "Present" ? "#22c55e" : "#ef4444" }}>● {r.status}</span>
                         </td>
-                        <td style={{ padding: "12px" }}>
-                          <input type="number" className="marks-input" value={marks[r.student_id]?.cie1} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], cie1: e.target.value}})} />
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          <input type="number" className="marks-input" value={marks[r.student_id]?.cie2} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], cie2: e.target.value}})} />
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          <input type="number" className="marks-input" value={marks[r.student_id]?.see} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], see: e.target.value}})} />
-                        </td>
-                        <td style={{ padding: "12px" }}>
-                          <button onClick={() => saveMarks(r.student_id)} className="btn-save">Save</button>
-                        </td>
+                        <td><input type="number" className="marks-input" value={marks[r.student_id]?.cie1} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], cie1: e.target.value}})} /></td>
+                        <td><input type="number" className="marks-input" value={marks[r.student_id]?.cie2} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], cie2: e.target.value}})} /></td>
+                        <td><input type="number" className="marks-input" value={marks[r.student_id]?.see} onChange={(e) => setMarks({...marks, [r.student_id]: {...marks[r.student_id], see: e.target.value}})} /></td>
+                        <td><button onClick={() => saveMarks(r.student_id)} className="btn-save">Save</button></td>
                       </tr>
                     ))}
                   </tbody>
@@ -637,22 +630,19 @@ export default function TeacherDashboard() {
         </main>
       </div>
 
-      {/* Classroom Change Modal */}
       {showModal && (
         <div className="modal-overlay">
           <div className="glass-card modal-content">
-            <MapPin size={40} color="#6366f1" />
-            <h3 style={{ color: "white", margin: "15px 0 5px 0" }}>Update Classroom</h3>
-            <p style={{ color: "#94a3b8", fontSize: "0.85rem", marginBottom: "20px" }}>Change location for {selectedClass?.subject}</p>
+            <MapPin size={32} color="#6366f1" />
+            <h3 style={{ color: "white", margin: "10px 0" }}>Update Room</h3>
             <input 
               type="text" 
               className="marks-input" 
-              style={{ width: "100%", padding: "12px", marginBottom: "20px", textAlign: "center" }}
+              style={{ width: "80%", padding: "10px", marginBottom: "15px", textAlign: "center" }}
               value={newRoomName} 
               onChange={(e) => setNewRoomName(e.target.value)}
-              placeholder="e.g. Lab 2 or Room 405"
             />
-            <div style={{ display: "flex", gap: "10px" }}>
+            <div style={{ display: "flex", gap: "10px", width: "100%" }}>
               <button onClick={() => setShowModal(false)} className="btn-cancel">Cancel</button>
               <button onClick={handleUpdateRoom} className="btn-primary">Update</button>
             </div>
@@ -661,26 +651,40 @@ export default function TeacherDashboard() {
       )}
 
       <style>{`
-        .sidebar-wrapper { width: 260px; transition: 0.3s; }
-        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
-        .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); }
-        .live-indicator { position: absolute; top: 12px; right: 12px; background: #22c55e; color: black; font-size: 0.6rem; font-weight: 900; padding: 2px 8px; border-radius: 4px; }
-        .btn-primary { background: #6366f1; color: white; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; flex: 1; font-weight: 600; }
-        .btn-secondary { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 10px 15px; border-radius: 8px; cursor: pointer; flex: 1; }
-        .btn-save { background: #22c55e; border: none; color: black; font-weight: 600; padding: 5px 12px; border-radius: 4px; cursor: pointer; }
-        .btn-cancel { background: transparent; border: 1px solid #334155; color: white; flex: 1; border-radius: 8px; cursor: pointer; }
-        .marks-input { background: rgba(0,0,0,0.3); border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; width: 60px; outline: none; }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
-        .modal-content { width: 100%; maxWidth: 400px; padding: 30px; display: flex; flexDirection: column; align-items: center; }
-        
+        /* Desktop Default */
+        .sidebar-wrapper { width: 260px; position: sticky; top: 0; height: 100vh; transition: 0.3s; z-index: 100; background: #020617; }
+        .main-content { flex: 1; min-width: 0; }
+        .class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 15px; }
+        .glass-card { background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(12px); border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .live-indicator { position: absolute; top: 10px; right: 10px; background: #22c55e; color: black; font-size: 0.6rem; font-weight: 900; padding: 2px 6px; border-radius: 4px; }
+        .btn-primary { background: #6366f1; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1; font-weight: 600; }
+        .btn-secondary { background: rgba(255,255,255,0.05); color: white; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 6px; cursor: pointer; flex: 1; }
+        .btn-save { background: #22c55e; border: none; color: black; font-weight: 600; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; }
+        .btn-cancel { background: transparent; border: 1px solid #334155; color: white; flex: 1; border-radius: 6px; cursor: pointer; }
+        .marks-input { background: rgba(255,255,255,0.05); border: 1px solid #334155; color: white; padding: 6px; border-radius: 4px; width: 50px; outline: none; }
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 20px; }
+        .modal-content { width: 100%; maxWidth: 350px; padding: 25px; display: flex; flexDirection: column; align-items: center; }
+
+        /* Mobile Adjustments */
         @media (max-width: 768px) {
-          .sidebar-wrapper { position: fixed; left: -260px; z-index: 90; }
+          .sidebar-wrapper { position: fixed; left: -260px; top: 0; height: 100vh; background: #0f172a; }
           .sidebar-wrapper.open { left: 0; }
-          .mobile-toggle { display: block !important; }
+          .main-content { width: 100%; }
           .class-grid { grid-template-columns: 1fr; }
+          .mobile-toggle-btn { 
+            display: block; position: fixed; top: 15px; left: 15px; z-index: 1000; 
+            background: rgba(99, 102, 241, 0.2); border: 1px solid rgba(255,255,255,0.1); 
+            color: white; padding: 8px; border-radius: 8px; backdrop-filter: blur(5px);
+          }
+          .sidebar-overlay { 
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; 
+            background: rgba(0,0,0,0.7); z-index: 90; 
+          }
         }
+
         @media (min-width: 769px) {
-          .mobile-toggle { display: none !important; }
+          .mobile-toggle-btn { display: none; }
         }
       `}</style>
     </div>
