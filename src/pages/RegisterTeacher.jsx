@@ -281,7 +281,7 @@ export default function RegisterTeacher() {
           <button type="submit" className="aesthetic-btn" style={teacherBtn}>REGISTER AS FACULTY</button>
         </form>
 
-        <p style={{ marginTop: '20px', color: 'rgba(255,255,255,0.6)', fontSize: '14px' }}>
+        <p style={{ marginTop: '20px', color: 'hsla(0, 69%, 3%, 0.60)', fontSize: '14px' }}>
           Registered already?{" "}
           <span onClick={() => navigate('/teacher/login')} style={{ color: '#a855f7', cursor: 'pointer', fontWeight: 'bold' }}>
             Login here
