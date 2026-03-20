@@ -2,7 +2,7 @@
 body {
   margin: 0;
   font-family: "Inter", sans-serif;
-  background: #020617 !important; /* Matches index.css */
+  background: transparent !important; /* Matches index.css */
   min-height: 100vh;
   display: flex;
   justify-content: center;
