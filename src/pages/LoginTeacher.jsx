@@ -159,19 +159,17 @@
 // }
 
 
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import API from "../api/api"; // Ensure this path points to your axios instance
+import API from "../api/api"; 
 
-// --- CORPORATE GLASS STYLING ---
 const loginContainerStyle = {
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   height: '100vh',
   padding: '20px',
-  background: '#0b0e14' // Dark background to make glass effect pop
+  background: '#0b0e14' 
 };
 
 const inputStyle = {
@@ -210,38 +208,40 @@ export default function TeacherLogin() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      alert("Please fill in all fields");
+      alert("Please enter both email and password.");
       return;
     }
 
     setLoading(true);
     try {
-      // Calling your existing backend login endpoint
-      const res = await API.post("/students/login", { 
+      // Step 1: Hit the login endpoint
+      const res = await API.post("/teachers/login", { 
         email: email, 
         password: password 
       });
 
+      // Step 2: Validate the response
       if (res.data.status === "success") {
         const user = res.data.user;
         
-        // Save user details for session management
+        // Critical: Store the entire user object and the role separately for easy access
         localStorage.setItem("user", JSON.stringify(user));
         localStorage.setItem("role", user.role);
 
-        // Redirect based on role returned from DB
+        // Step 3: Role-based redirection
         if (user.role === "teacher") {
           navigate("/teacher/dashboard");
         } else {
-          alert("Access Denied: This portal is for Faculty only.");
-          localStorage.clear(); // Security: don't let students stay logged in here
+          alert("Access Denied: This credentials belong to a student account.");
+          localStorage.clear(); 
         }
       } else {
-        alert(res.data.message || "Invalid Credentials");
+        // This handles the "Incorrect Credentials" message from backend
+        alert(res.data.message || "Invalid Email or Password");
       }
     } catch (err) {
       console.error("Login Error:", err);
-      alert("Login failed. Check if backend is running or credentials are correct.");
+      alert("Server Error: Ensure your backend is running and the database is connected.");
     } finally {
       setLoading(false);
     }
@@ -284,8 +284,6 @@ export default function TeacherLogin() {
           style={inputStyle}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          onFocus={(e) => e.target.style.border = '1px solid #a855f7'}
-          onBlur={(e) => e.target.style.border = '1px solid rgba(255,255,255,0.1)'}
         />
         
         <input 
@@ -294,8 +292,6 @@ export default function TeacherLogin() {
           style={inputStyle}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          onFocus={(e) => e.target.style.border = '1px solid #a855f7'}
-          onBlur={(e) => e.target.style.border = '1px solid rgba(255,255,255,0.1)'}
         />
 
         <button 

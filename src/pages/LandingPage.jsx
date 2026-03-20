@@ -42,7 +42,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing-container" style={styles.container}>
-      <h1 style={styles.title}>Smart <span style={{color: '#4facfe'}}>Attendance</span></h1>
+      <h1 style={styles.title}>Smart <span style={{color: '#020b12'}}>Attendance</span></h1>
       
       <div style={styles.cardWrapper}>
         {/* STUDENT -> Goes to Register */}
@@ -54,7 +54,7 @@ export default function LandingPage() {
 
         {/* TEACHER -> Goes to Register */}
         <div className="glass-card" style={styles.card} onClick={() => navigate('/teacher/register')}>
-          <FaChalkboardTeacher style={{fontSize: '50px', color: '#a855f7'}} />
+          <FaChalkboardTeacher style={{fontSize: '50px', color: '#0b0412'}} />
           <h3>Faculty</h3>
           <button className="aesthetic-btn" style={styles.btnPurple}>Join Portal</button>
         </div>
