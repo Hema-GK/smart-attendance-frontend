@@ -520,7 +520,183 @@
 
 
 
-import { useRef, useState } from "react";
+// import { useRef, useState } from "react";
+// import Webcam from "react-webcam";
+// import API from "../api/api";
+
+// export default function FaceCapture({ currentClass }) {
+//   const webcamRef = useRef(null);
+//   const [student, setStudent] = useState(null);
+//   const [confirmed, setConfirmed] = useState(false);
+//   const [loading, setLoading] = useState(false);
+//   const [marking, setMarking] = useState(false);
+//   const [cameraReady, setCameraReady] = useState(false);
+
+//   const videoConstraints = {
+//     facingMode: "user",
+//     width: { ideal: 1280 },
+//     height: { ideal: 720 }
+//   };
+
+//   // 1. Capture and Recognize Face
+//   const captureFace = async () => {
+//     if (!webcamRef.current) return;
+//     setLoading(true);
+//     const image = webcamRef.current.getScreenshot();
+
+//     try {
+//       const res = await API.post("/face/recognize", { image });
+//       if (res.data.status === "Face recognized") {
+//         setStudent(res.data.student);
+//       } else {
+//         alert(res.data.status || "Face not recognized. Please adjust lighting.");
+//       }
+//     } catch (err) {
+//       alert("Recognition error. Check your server connection.");
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   // 2. Finalize Attendance with Distance Logic
+//   const markAttendance = async () => {
+//     setMarking(true);
+    
+//     navigator.geolocation.getCurrentPosition(
+//       async (position) => {
+//         try {
+//           const res = await API.post("/attendance/mark", {
+//             student_id: student.id,
+//             timetable_id: currentClass.id,
+//             latitude: position.coords.latitude,
+//             longitude: position.coords.longitude
+//           });
+
+//           if (res.data.status === "success") {
+//             alert("Attendance marked! ✅");
+//             window.location.href = "/student/dashboard";
+//           } else {
+//             // FIX: Prevent the "unknownm" error by checking if distance is a number
+//             const dist = res.data.distance;
+//             const distanceDisplay = (typeof dist === 'number') 
+//               ? `${dist.toFixed(2)}m` 
+//               : "an unverified distance";
+
+//             alert(`Attendance Failed! ❌\nYou are ${distanceDisplay} away from the room center.`);
+//           }
+//         } catch (err) {
+//           const errorDist = err.response?.data?.distance;
+//           alert(errorDist ? `Too far: ${errorDist}m away.` : "Submission failed. Please try again.");
+//         } finally {
+//           setMarking(false);
+//         }
+//       },
+//       () => {
+//         alert("Location access denied! GPS is required to verify you are in the classroom.");
+//         setMarking(false);
+//       },
+//       { enableHighAccuracy: true, timeout: 15000,maximumAge:0 }
+//     );
+//   };
+
+//   return (
+//     <div style={{ textAlign: "center", width: '100%' }}>
+//       <h3 style={{ marginBottom: '15px', color: '#fff', fontSize: '1rem' }}>Biometric Verification</h3>
+      
+//       {/* CAMERA WINDOW */}
+//       <div style={webcamWrapper}>
+//         <Webcam
+//           ref={webcamRef}
+//           audio={false}
+//           screenshotFormat="image/jpeg"
+//           videoConstraints={videoConstraints}
+//           onUserMedia={() => setCameraReady(true)}
+//           style={webcamStyle}
+//           playsInline
+//         />
+//         {!cameraReady && <div style={loadingOverlay}>Initializing Camera...</div>}
+//         {loading && <div className="scan-line" style={scanLineStyle}></div>}
+//       </div>
+
+//       <div style={{ marginTop: '20px' }}>
+//         {!student ? (
+//           <button 
+//             className="btn-primary" 
+//             style={{ width: '100%' }} 
+//             onClick={captureFace} 
+//             disabled={!cameraReady || loading}
+//           >
+//             {loading ? "SCANNING FACE..." : "CAPTURE FACE"}
+//           </button>
+//         ) : (
+//           <div style={resultBox}>
+//             <p style={{ fontSize: '0.7rem', opacity: 0.6, color: '#fff', textTransform: 'uppercase' }}>Identity Detected</p>
+//             <h3 style={{ color: '#4facfe', margin: '5px 0' }}>{student.name}</h3>
+//             <p style={{ color: '#fff', fontSize: '0.9rem', marginBottom: '15px' }}>{student.usn}</p>
+            
+//             {!confirmed ? (
+//               <button className="btn-primary" style={{ width: '100%', background: '#22c55e' }} onClick={() => setConfirmed(true)}>
+//                 CONFIRM IDENTITY
+//               </button>
+//             ) : (
+//               <button className="btn-primary" style={{ width: '100%', background: 'linear-gradient(90deg, #6366f1, #a855f7)' }} onClick={markAttendance} disabled={marking}>
+//                 {marking ? "VERIFYING LOCATION..." : "FINALIZE ATTENDANCE"}
+//               </button>
+//             )}
+
+//             <button style={retakeBtn} onClick={() => { setStudent(null); setConfirmed(false); }}>
+//               Not you? Retake Photo
+//             </button>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
+// // --- INTERNAL STYLES ---
+
+// const webcamWrapper = {
+//   position: 'relative',
+//   borderRadius: '12px',
+//   overflow: 'hidden',
+//   background: '#000',
+//   border: '2px solid rgba(79, 172, 254, 0.5)',
+//   aspectRatio: '4/3'
+// };
+
+// const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
+
+// const loadingOverlay = {
+//   position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+//   display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617'
+// };
+
+// const scanLineStyle = {
+//   position: 'absolute', left: 0, width: '100%', height: '2px',
+//   background: '#4facfe', boxShadow: '0 0 10px #4facfe', zIndex: 10,
+//   animation: 'scan 2s linear infinite'
+// };
+
+// const resultBox = { 
+//   padding: '20px', 
+//   background: 'rgba(255,255,255,0.03)', 
+//   borderRadius: '12px', 
+//   border: '1px solid rgba(255,255,255,0.1)' 
+// };
+
+// const retakeBtn = { 
+//   background: 'none', 
+//   border: 'none', 
+//   color: 'rgba(255,255,255,0.4)', 
+//   marginTop: '15px', 
+//   cursor: 'pointer', 
+//   fontSize: '0.8rem',
+//   textDecoration: 'underline' 
+// };
+
+
+import { useRef, useState, useEffect } from "react"; // Added useEffect
 import Webcam from "react-webcam";
 import API from "../api/api";
 
@@ -531,6 +707,24 @@ export default function FaceCapture({ currentClass }) {
   const [loading, setLoading] = useState(false);
   const [marking, setMarking] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
+  
+  // --- ADDED FOR GPS STABILIZATION ---
+  const [canFinalize, setCanFinalize] = useState(false);
+  const [countdown, setCountdown] = useState(10);
+
+  useEffect(() => {
+    let timer;
+    if (confirmed && countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => prev - 1);
+      }, 1000);
+    } else if (countdown === 0) {
+      setCanFinalize(true);
+      clearInterval(timer);
+    }
+    return () => clearInterval(timer);
+  }, [confirmed, countdown]);
+  // -----------------------------------
 
   const videoConstraints = {
     facingMode: "user",
@@ -538,7 +732,6 @@ export default function FaceCapture({ currentClass }) {
     height: { ideal: 720 }
   };
 
-  // 1. Capture and Recognize Face
   const captureFace = async () => {
     if (!webcamRef.current) return;
     setLoading(true);
@@ -558,7 +751,6 @@ export default function FaceCapture({ currentClass }) {
     }
   };
 
-  // 2. Finalize Attendance with Distance Logic
   const markAttendance = async () => {
     setMarking(true);
     
@@ -576,7 +768,6 @@ export default function FaceCapture({ currentClass }) {
             alert("Attendance marked! ✅");
             window.location.href = "/student/dashboard";
           } else {
-            // FIX: Prevent the "unknownm" error by checking if distance is a number
             const dist = res.data.distance;
             const distanceDisplay = (typeof dist === 'number') 
               ? `${dist.toFixed(2)}m` 
@@ -595,7 +786,7 @@ export default function FaceCapture({ currentClass }) {
         alert("Location access denied! GPS is required to verify you are in the classroom.");
         setMarking(false);
       },
-      { enableHighAccuracy: true, timeout: 15000,maximumAge:0 }
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -603,7 +794,6 @@ export default function FaceCapture({ currentClass }) {
     <div style={{ textAlign: "center", width: '100%' }}>
       <h3 style={{ marginBottom: '15px', color: '#fff', fontSize: '1rem' }}>Biometric Verification</h3>
       
-      {/* CAMERA WINDOW */}
       <div style={webcamWrapper}>
         <Webcam
           ref={webcamRef}
@@ -635,16 +825,29 @@ export default function FaceCapture({ currentClass }) {
             <p style={{ color: '#fff', fontSize: '0.9rem', marginBottom: '15px' }}>{student.usn}</p>
             
             {!confirmed ? (
-              <button className="btn-primary" style={{ width: '100%', background: '#22c55e' }} onClick={() => setConfirmed(true)}>
+              <button 
+                className="btn-primary" 
+                style={{ width: '100%', background: '#22c55e' }} 
+                onClick={() => setConfirmed(true)}
+              >
                 CONFIRM IDENTITY
               </button>
             ) : (
-              <button className="btn-primary" style={{ width: '100%', background: 'linear-gradient(90deg, #6366f1, #a855f7)' }} onClick={markAttendance} disabled={marking}>
-                {marking ? "VERIFYING LOCATION..." : "FINALIZE ATTENDANCE"}
+              <button 
+                className="btn-primary" 
+                style={{ 
+                    width: '100%', 
+                    background: canFinalize ? 'linear-gradient(90deg, #6366f1, #a855f7)' : '#4b5563',
+                    cursor: canFinalize ? 'pointer' : 'not-allowed'
+                }} 
+                onClick={markAttendance} 
+                disabled={!canFinalize || marking}
+              >
+                {marking ? "VERIFYING..." : (canFinalize ? "FINALIZE ATTENDANCE" : `STABILIZING GPS (${countdown}s)`)}
               </button>
             )}
 
-            <button style={retakeBtn} onClick={() => { setStudent(null); setConfirmed(false); }}>
+            <button style={retakeBtn} onClick={() => { setStudent(null); setConfirmed(false); setCanFinalize(false); setCountdown(10); }}>
               Not you? Retake Photo
             </button>
           </div>
@@ -654,43 +857,10 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// --- INTERNAL STYLES ---
-
-const webcamWrapper = {
-  position: 'relative',
-  borderRadius: '12px',
-  overflow: 'hidden',
-  background: '#000',
-  border: '2px solid rgba(79, 172, 254, 0.5)',
-  aspectRatio: '4/3'
-};
-
+// --- INTERNAL STYLES (Unchanged) ---
+const webcamWrapper = { position: 'relative', borderRadius: '12px', overflow: 'hidden', background: '#000', border: '2px solid rgba(79, 172, 254, 0.5)', aspectRatio: '4/3' };
 const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
-
-const loadingOverlay = {
-  position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
-  display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617'
-};
-
-const scanLineStyle = {
-  position: 'absolute', left: 0, width: '100%', height: '2px',
-  background: '#4facfe', boxShadow: '0 0 10px #4facfe', zIndex: 10,
-  animation: 'scan 2s linear infinite'
-};
-
-const resultBox = { 
-  padding: '20px', 
-  background: 'rgba(255,255,255,0.03)', 
-  borderRadius: '12px', 
-  border: '1px solid rgba(255,255,255,0.1)' 
-};
-
-const retakeBtn = { 
-  background: 'none', 
-  border: 'none', 
-  color: 'rgba(255,255,255,0.4)', 
-  marginTop: '15px', 
-  cursor: 'pointer', 
-  fontSize: '0.8rem',
-  textDecoration: 'underline' 
-};
+const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617' };
+const scanLineStyle = { position: 'absolute', left: 0, width: '100%', height: '2px', background: '#4facfe', boxShadow: '0 0 10px #4facfe', zIndex: 10, animation: 'scan 2s linear infinite' };
+const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' };
+const retakeBtn = { background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '15px', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' };
