@@ -871,8 +871,20 @@
 
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
-import { Wifi } from '@capacitor-community/wifi'; // Required for RSSI/BSSID
 import API from "../api/api";
+
+/** * CRITICAL FIX FOR VERCEL BUILD:
+ * We do NOT use a top-level import for Capacitor plugins.
+ * This prevents Rollup from failing to resolve the module during the web build.
+ */
+let Wifi = null;
+if (typeof window !== "undefined") {
+  import('capacitor-wifi').then(mod => {
+    Wifi = mod.Wifi;
+  }).catch(() => {
+    console.log("Wifi plugin not available in this environment (Browser/Vercel).");
+  });
+}
 
 export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null);
@@ -882,7 +894,7 @@ export default function FaceCapture({ currentClass }) {
   const [marking, setMarking] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [canFinalize, setCanFinalize] = useState(false);
-  const [countdown, setCountdown] = useState(10);
+  const [countdown, setCountdown] = useState(5); // 5 seconds is enough for GPS calibration
 
   useEffect(() => {
     let timer;
@@ -890,7 +902,6 @@ export default function FaceCapture({ currentClass }) {
       timer = setInterval(() => setCountdown((prev) => prev - 1), 1000);
     } else if (countdown === 0) {
       setCanFinalize(true);
-      clearInterval(timer);
     }
     return () => clearInterval(timer);
   }, [confirmed, countdown]);
@@ -915,18 +926,23 @@ export default function FaceCapture({ currentClass }) {
 
   const markAttendance = async () => {
     setMarking(true);
+    
+    // Default fallback values (will fail backend check, which is correct for web/unauthorized tests)
     let currentBSSID = "00:00:00:00:00:00";
-    let currentRSSI = -100; // Very weak default
+    let currentRSSI = -100; 
 
     try {
-      // Fetching hardware Wi-Fi info via Capacitor
-      const info = await Wifi.getIPInfo(); 
-      // Note: BSSID/RSSI usually requires 'Wifi.getCurrentWifiInfo()' in specialized plugins
-      const wifiInfo = await Wifi.getCurrentWifiInfo(); 
-      currentBSSID = wifiInfo.bssid;
-      currentRSSI = wifiInfo.rssi; 
+      /**
+       * HARDWARE CHECK:
+       * Only attempts to fetch WiFi data if the plugin loaded successfully (Android).
+       */
+      if (Wifi && typeof Wifi.getIPInfo === 'function') {
+        const wifiInfo = await Wifi.getIPInfo(); 
+        currentBSSID = wifiInfo.bssid || "00:00:00:00:00:00";
+        currentRSSI = wifiInfo.signalLevel || -100; 
+      }
     } catch (err) {
-      console.log("Using browser/mock hardware data.");
+      console.warn("Hardware scan skipped. Running in browser mode.");
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -938,13 +954,14 @@ export default function FaceCapture({ currentClass }) {
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
             bssid: currentBSSID,
-            rssi: currentRSSI // Send signal strength to backend
+            rssi: currentRSSI 
           });
 
           if (res.data.status === "success") {
             alert("Attendance marked successfully! ✅");
             window.location.href = "/student/dashboard";
           } else {
+            // Displays specific failure: "Signal too weak", "Wrong BSSID", etc.
             alert(`Verification Failed: ${res.data.message}`);
           }
         } catch (err) {
@@ -954,7 +971,7 @@ export default function FaceCapture({ currentClass }) {
         }
       },
       (error) => {
-        alert("GPS error: Enable Location.");
+        alert("GPS error: Please enable Location services and try again.");
         setMarking(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -992,7 +1009,11 @@ export default function FaceCapture({ currentClass }) {
             ) : (
               <button 
                 className="btn-primary" 
-                style={{ background: canFinalize ? '#6366f1' : '#4b5563', cursor: canFinalize ? 'pointer' : 'not-allowed' }} 
+                style={{ 
+                  background: canFinalize ? '#6366f1' : '#4b5563', 
+                  cursor: canFinalize ? 'pointer' : 'not-allowed',
+                  transition: 'background 0.3s ease'
+                }} 
                 onClick={markAttendance} 
                 disabled={!canFinalize || marking}
               >
@@ -1006,10 +1027,11 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
+// STYLES (Kept consistent with your UI)
 const containerStyle = { textAlign: "center", width: '100%', maxWidth: '500px', margin: '0 auto' };
 const webcamWrapper = { position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', border: '2px solid rgba(74, 158, 255, 0.3)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', aspectRatio: '4/3' };
 const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
 const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617', fontSize: '1.1rem' };
 const scanLineStyle = { position: 'absolute', left: 0, width: '100%', height: '3px', background: '#4facfe', boxShadow: '0 0 15px #4facfe', zIndex: 10, animation: 'scan 2s linear infinite' };
 const resultBox = { padding: '25px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' };
-const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', fontWeight: '500' };
+const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', fontWeight: '500', color: 'white' };
