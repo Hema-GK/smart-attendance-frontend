@@ -982,14 +982,19 @@ export default function FaceCapture({ currentClass }) {
     <div style={containerStyle}>
       <div style={webcamWrapper}>
         <Webcam
-          ref={webcamRef}
-          audio={false}
-          screenshotFormat="image/jpeg"
-          onUserMedia={() => setCameraReady(true)}
-          style={webcamStyle}
-          videoConstraints={{ facingMode: "user" }}
-          playsInline
-        />
+  ref={webcamRef}
+  audio={false}
+  screenshotFormat="image/jpeg"
+  onUserMedia={() => setCameraReady(true)} // This triggers the UI change
+  onUserMediaError={(err) => alert("Camera blocked: " + err)} // Add this for debugging
+  style={webcamStyle}
+  videoConstraints={{ 
+    facingMode: "user",
+    width: { ideal: 1280 },
+    height: { ideal: 720 } 
+  }}
+  playsInline
+/>
         {!cameraReady && <div style={loadingOverlay}>Initializing Camera...</div>}
         {loading && <div style={scanLineStyle}></div>}
       </div>
