@@ -568,6 +568,129 @@
 //   margin: '0 auto'
 // };
 
+// import { useState, useEffect } from "react";
+// import FaceCapture from "../components/FaceCapture";
+// import API from "../api/api";
+
+// export default function MarkAttendance() {
+//   const [currentClass, setCurrentClass] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     API.get("/timetable/current-class")
+//       .then(res => {
+//         if (res.data.status === "Class Active") {
+//           setCurrentClass(res.data.class);
+//         }
+//         setLoading(false);
+//       })
+//       .catch(err => {
+//         console.error("Schedule Verification Error:", err);
+//         setLoading(false);
+//       });
+//   }, []);
+
+//   if (loading) {
+//     return (
+//       <div style={containerStyle}>
+//         <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
+//           <div className="spinner" style={spinnerStyle}></div>
+//           <h2 style={{ color: "white", marginTop: '20px', letterSpacing: '1px' }}>
+//             VERIFYING SCHEDULE...
+//           </h2>
+//           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '10px' }}>
+//             Syncing with institutional server
+//           </p>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   if (!currentClass) {
+//     return (
+//       <div style={containerStyle}>
+//         <div className="glass-card" style={{ padding: "40px", color: "white", textAlign: "center", maxWidth: '400px' }}>
+//           <div style={{ fontSize: '50px', marginBottom: '15px' }}>⏳</div>
+//           <h2 style={{ color: '#ff4d4d', marginBottom: '10px' }}>No Active Session</h2>
+//           <p style={{ opacity: 0.7, fontSize: '14px', lineHeight: '1.6' }}>
+//             There are no classes scheduled for your section at this moment. 
+//             Please ensure you are within the allocated timetable slot.
+//           </p>
+//           <button 
+//             onClick={() => window.location.reload()} 
+//             style={retryBtn}
+//           >
+//             Refresh Status
+//           </button>
+//         </div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div style={containerStyle}>
+//       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', maxWidth: '500px' }}>
+        
+//         <div className="glass-card" style={{ width: "100%", textAlign: "center", borderLeft: '4px solid #4facfe', position: 'relative', overflow: 'hidden' }}>
+//           <div style={glowEffect}></div>
+//           <span style={badgeStyle}>Live Session</span>
+//           <h2 style={{ fontSize: '1.8rem', margin: '15px 0 5px 0', color: '#fff' }}>
+//             {currentClass.subject}
+//           </h2>
+//           <div style={infoGrid}>
+//             <div style={infoItem}>
+//               <span style={labelStyle}>SECTION</span>
+//               <p style={valueStyle}>{currentClass.section || "N/A"}</p>
+//             </div>
+//             <div style={infoItem}>
+//               <span style={labelStyle}>ROOM</span>
+//               <p style={valueStyle}>{currentClass.classroom}</p>
+//             </div>
+//           </div>
+//         </div>
+
+//         <div className="glass-card" style={{ width: '100%', padding: '15px', border: '1px solid rgba(255,255,255,0.05)' }}>
+//              <FaceCapture currentClass={currentClass} />
+//         </div>
+
+//         <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', textAlign: 'center' }}>
+//           SECURE BIOMETRIC GATEWAY • ENCRYPTED DATA
+//         </p>
+//       </div>
+
+//       <style>{`
+//         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+//         @keyframes scan {
+//           0% { top: 0; }
+//           50% { top: 100%; }
+//           100% { top: 0; }
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
+
+// // --- STYLES (Unchanged) ---
+// const containerStyle = { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", padding: "20px", background: "#0f172a" };
+// const glowEffect = { position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', background: 'radial-gradient(circle, rgba(79, 172, 254, 0.05) 0%, transparent 70%)', pointerEvents: 'none' };
+// const badgeStyle = { background: 'rgba(79, 172, 254, 0.15)', color: '#4facfe', padding: '5px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' };
+// const infoGrid = { display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '20px', padding: '10px 0' };
+// const infoItem = { display: 'flex', flexDirection: 'column', gap: '5px' };
+// const labelStyle = { fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', letterSpacing: '0.5px' };
+// const valueStyle = { fontSize: '16px', color: '#fff', fontWeight: '600', margin: 0 };
+// const retryBtn = { marginTop: '25px', padding: '12px 24px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' };
+// const spinnerStyle = { width: '45px', height: '45px', border: '3px solid rgba(255,255,255,0.05)', borderTop: '3px solid #4facfe', borderRadius: '50%', margin: '0 auto' };
+
+
+
+
+
+
+
+
+
+
+
 import { useState, useEffect } from "react";
 import FaceCapture from "../components/FaceCapture";
 import API from "../api/api";
@@ -595,12 +718,7 @@ export default function MarkAttendance() {
       <div style={containerStyle}>
         <div className="glass-card" style={{ padding: '40px', textAlign: 'center' }}>
           <div className="spinner" style={spinnerStyle}></div>
-          <h2 style={{ color: "white", marginTop: '20px', letterSpacing: '1px' }}>
-            VERIFYING SCHEDULE...
-          </h2>
-          <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '12px', marginTop: '10px' }}>
-            Syncing with institutional server
-          </p>
+          <h2 style={{ color: "white", marginTop: '20px', letterSpacing: '1px' }}>VERIFYING SCHEDULE...</h2>
         </div>
       </div>
     );
@@ -612,16 +730,7 @@ export default function MarkAttendance() {
         <div className="glass-card" style={{ padding: "40px", color: "white", textAlign: "center", maxWidth: '400px' }}>
           <div style={{ fontSize: '50px', marginBottom: '15px' }}>⏳</div>
           <h2 style={{ color: '#ff4d4d', marginBottom: '10px' }}>No Active Session</h2>
-          <p style={{ opacity: 0.7, fontSize: '14px', lineHeight: '1.6' }}>
-            There are no classes scheduled for your section at this moment. 
-            Please ensure you are within the allocated timetable slot.
-          </p>
-          <button 
-            onClick={() => window.location.reload()} 
-            style={retryBtn}
-          >
-            Refresh Status
-          </button>
+          <button onClick={() => window.location.reload()} style={retryBtn}>Refresh Status</button>
         </div>
       </div>
     );
@@ -630,53 +739,28 @@ export default function MarkAttendance() {
   return (
     <div style={containerStyle}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px', width: '100%', maxWidth: '500px' }}>
-        
-        <div className="glass-card" style={{ width: "100%", textAlign: "center", borderLeft: '4px solid #4facfe', position: 'relative', overflow: 'hidden' }}>
-          <div style={glowEffect}></div>
+        <div className="glass-card" style={{ width: "100%", textAlign: "center", borderLeft: '4px solid #4facfe', position: 'relative' }}>
           <span style={badgeStyle}>Live Session</span>
-          <h2 style={{ fontSize: '1.8rem', margin: '15px 0 5px 0', color: '#fff' }}>
-            {currentClass.subject}
-          </h2>
+          <h2 style={{ fontSize: '1.8rem', margin: '15px 0 5px 0', color: '#fff' }}>{currentClass.subject}</h2>
           <div style={infoGrid}>
-            <div style={infoItem}>
-              <span style={labelStyle}>SECTION</span>
-              <p style={valueStyle}>{currentClass.section || "N/A"}</p>
-            </div>
-            <div style={infoItem}>
-              <span style={labelStyle}>ROOM</span>
-              <p style={valueStyle}>{currentClass.classroom}</p>
-            </div>
+            <div style={infoItem}><span style={labelStyle}>SECTION</span><p style={valueStyle}>{currentClass.section || "N/A"}</p></div>
+            <div style={infoItem}><span style={labelStyle}>ROOM</span><p style={valueStyle}>{currentClass.classroom}</p></div>
           </div>
         </div>
-
-        <div className="glass-card" style={{ width: '100%', padding: '15px', border: '1px solid rgba(255,255,255,0.05)' }}>
+        <div className="glass-card" style={{ width: '100%', padding: '15px' }}>
              <FaceCapture currentClass={currentClass} />
         </div>
-
-        <p style={{ color: 'rgba(255,255,255,0.3)', fontSize: '11px', textAlign: 'center' }}>
-          SECURE BIOMETRIC GATEWAY • ENCRYPTED DATA
-        </p>
       </div>
-
-      <style>{`
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        @keyframes scan {
-          0% { top: 0; }
-          50% { top: 100%; }
-          100% { top: 0; }
-        }
-      `}</style>
     </div>
   );
 }
 
-// --- STYLES (Unchanged) ---
+// Styles are identical to your provided MarkAttendance.jsx
 const containerStyle = { minHeight: "100vh", display: "flex", justifyContent: "center", alignItems: "center", padding: "20px", background: "#0f172a" };
-const glowEffect = { position: 'absolute', top: '-50%', left: '-50%', width: '200%', height: '200%', background: 'radial-gradient(circle, rgba(79, 172, 254, 0.05) 0%, transparent 70%)', pointerEvents: 'none' };
-const badgeStyle = { background: 'rgba(79, 172, 254, 0.15)', color: '#4facfe', padding: '5px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '1px' };
-const infoGrid = { display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '20px', padding: '10px 0' };
+const badgeStyle = { background: 'rgba(79, 172, 254, 0.15)', color: '#4facfe', padding: '5px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: '800', textTransform: 'uppercase' };
+const infoGrid = { display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '20px' };
 const infoItem = { display: 'flex', flexDirection: 'column', gap: '5px' };
-const labelStyle = { fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold', letterSpacing: '0.5px' };
+const labelStyle = { fontSize: '10px', color: 'rgba(255,255,255,0.4)', fontWeight: 'bold' };
 const valueStyle = { fontSize: '16px', color: '#fff', fontWeight: '600', margin: 0 };
-const retryBtn = { marginTop: '25px', padding: '12px 24px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', color: 'white', borderRadius: '12px', cursor: 'pointer', fontWeight: 'bold' };
+const retryBtn = { marginTop: '25px', padding: '12px 24px', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '12px' };
 const spinnerStyle = { width: '45px', height: '45px', border: '3px solid rgba(255,255,255,0.05)', borderTop: '3px solid #4facfe', borderRadius: '50%', margin: '0 auto' };

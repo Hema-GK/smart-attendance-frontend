@@ -867,7 +867,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
-import { Network } from '@capacitor/network'; // Stable, official plugin
+import { Wifi } from '@capacitor-community/wifi'; // Required for RSSI/BSSID
 import API from "../api/api";
 
 export default function FaceCapture({ currentClass }) {
@@ -880,7 +880,6 @@ export default function FaceCapture({ currentClass }) {
   const [canFinalize, setCanFinalize] = useState(false);
   const [countdown, setCountdown] = useState(10);
 
-  // Timer logic for GPS stabilization and "liveness"
   useEffect(() => {
     let timer;
     if (confirmed && countdown > 0) {
@@ -896,17 +895,15 @@ export default function FaceCapture({ currentClass }) {
     if (!webcamRef.current) return;
     setLoading(true);
     const image = webcamRef.current.getScreenshot();
-    
     try {
       const res = await API.post("/face/recognize", { image });
       if (res.data.status === "Face recognized") {
         setStudent(res.data.student);
       } else {
-        alert(res.data.status || "Face not recognized. Please try again.");
+        alert(res.data.status || "Face not recognized.");
       }
     } catch (err) {
-      console.error(err);
-      alert("Backend connection failed. Check if your API is running.");
+      alert("Backend connection failed.");
     } finally {
       setLoading(false);
     }
@@ -914,16 +911,18 @@ export default function FaceCapture({ currentClass }) {
 
   const markAttendance = async () => {
     setMarking(true);
-    let currentBSSID = "00:00:00:00:00:00"; // Default
+    let currentBSSID = "00:00:00:00:00:00";
+    let currentRSSI = -100; // Very weak default
 
     try {
-      // Check if user is actually on Wi-Fi (Native Android only)
-      const status = await Network.getStatus();
-      if (status.connected && status.connectionType === 'wifi') {
-        currentBSSID = "WIFI_VERIFIED_HARDWARE"; 
-      }
+      // Fetching hardware Wi-Fi info via Capacitor
+      const info = await Wifi.getIPInfo(); 
+      // Note: BSSID/RSSI usually requires 'Wifi.getCurrentWifiInfo()' in specialized plugins
+      const wifiInfo = await Wifi.getCurrentWifiInfo(); 
+      currentBSSID = wifiInfo.bssid;
+      currentRSSI = wifiInfo.rssi; 
     } catch (err) {
-      console.log("Not running in Native environment, skipping BSSID check.");
+      console.log("Using browser/mock hardware data.");
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -934,7 +933,8 @@ export default function FaceCapture({ currentClass }) {
             timetable_id: currentClass.id,
             latitude: position.coords.latitude,
             longitude: position.coords.longitude,
-            bssid: currentBSSID 
+            bssid: currentBSSID,
+            rssi: currentRSSI // Send signal strength to backend
           });
 
           if (res.data.status === "success") {
@@ -944,14 +944,13 @@ export default function FaceCapture({ currentClass }) {
             alert(`Verification Failed: ${res.data.message}`);
           }
         } catch (err) {
-          const errorMsg = err.response?.data?.message || "Server error occurred.";
-          alert(errorMsg);
+          alert(err.response?.data?.message || "Server error.");
         } finally {
           setMarking(false);
         }
       },
       (error) => {
-        alert("GPS error: Please enable Location Services.");
+        alert("GPS error: Enable Location.");
         setMarking(false);
       },
       { enableHighAccuracy: true, timeout: 15000 }
@@ -976,31 +975,20 @@ export default function FaceCapture({ currentClass }) {
 
       <div style={{ marginTop: '20px' }}>
         {!student ? (
-          <button 
-            className="btn-primary" 
-            onClick={captureFace} 
-            disabled={!cameraReady || loading}
-          >
+          <button className="btn-primary" onClick={captureFace} disabled={!cameraReady || loading}>
             {loading ? "SCANNING FACE..." : "START SCAN"}
           </button>
         ) : (
           <div style={resultBox}>
             <p style={welcomeText}>Welcome, <span style={{color: '#4facfe'}}>{student.name}</span></p>
             {!confirmed ? (
-              <button 
-                className="btn-primary" 
-                style={{ background: '#22c55e' }} 
-                onClick={() => setConfirmed(true)}
-              >
+              <button className="btn-primary" style={{ background: '#22c55e' }} onClick={() => setConfirmed(true)}>
                 CONFIRM IDENTITY
               </button>
             ) : (
               <button 
                 className="btn-primary" 
-                style={{ 
-                    background: canFinalize ? '#6366f1' : '#4b5563',
-                    cursor: canFinalize ? 'pointer' : 'not-allowed' 
-                }} 
+                style={{ background: canFinalize ? '#6366f1' : '#4b5563', cursor: canFinalize ? 'pointer' : 'not-allowed' }} 
                 onClick={markAttendance} 
                 disabled={!canFinalize || marking}
               >
@@ -1014,7 +1002,6 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// Inline Styles
 const containerStyle = { textAlign: "center", width: '100%', maxWidth: '500px', margin: '0 auto' };
 const webcamWrapper = { position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', border: '2px solid rgba(74, 158, 255, 0.3)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', aspectRatio: '4/3' };
 const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
@@ -1022,11 +1009,3 @@ const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', h
 const scanLineStyle = { position: 'absolute', left: 0, width: '100%', height: '3px', background: '#4facfe', boxShadow: '0 0 15px #4facfe', zIndex: 10, animation: 'scan 2s linear infinite' };
 const resultBox = { padding: '25px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' };
 const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', fontWeight: '500' };
-
-// Add this to your index.css for the animation
-/*
-@keyframes scan {
-  0% { top: 0; }
-  100% { top: 100%; }
-}
-*/
