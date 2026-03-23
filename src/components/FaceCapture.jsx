@@ -865,6 +865,10 @@
 // const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' };
 // const retakeBtn = { background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '15px', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' };
 
+
+
+
+
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import { Wifi } from '@capacitor-community/wifi'; // Required for RSSI/BSSID
