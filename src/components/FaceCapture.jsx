@@ -947,45 +947,42 @@ export default function FaceCapture({ currentClass }) {
     }
   };
 
-  const markAttendance = async () => {
-    setMarking(true);
-    
-    // Final check for BSSID before submission
-    await triggerHardwareScan();
-    
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const res = await API.post("/attendance/mark", {
-            student_id: student.id,
-            timetable_id: currentClass.id,
-            latitude: pos.coords.latitude,
-            longitude: pos.coords.longitude,
-            bssid: lastBSSID, 
-            rssi: -50
-          });
-          
-          if (res.data.status === "success") {
-            alert("Attendance marked successfully! ✅");
-            window.location.href = "/student/dashboard";
-          } else {
-            // Detailed error to help you debug in real-time
-            alert(`Verification Failed: ${res.data.message}\nSent BSSID: ${lastBSSID}`);
-          }
-        } catch (err) { 
-          alert(err.response?.data?.message || "Server error. Check your Railway logs."); 
-        } finally { 
-          setMarking(false); 
-        }
-      }, 
-      (error) => { 
-        alert("GPS Error. Please ensure Google Maps shows a Blue Dot at your location."); 
-        setMarking(false); 
-      }, 
-      { enableHighAccuracy: true, timeout: 15000 }
-    );
-  };
+const markAttendance = async () => {
+  setMarking(true);
+  
+  // 1. Force a fresh hardware read right before submitting
+  let actualBSSID = "00:00:00:00:00:00";
+  if (Wifi) {
+    const info = await Wifi.getIPInfo();
+    // Use the real ID if found, otherwise stay at zeros
+    actualBSSID = (info.bssid && info.bssid !== "00:00:00:00:00:00") 
+                  ? info.bssid.toLowerCase() 
+                  : lastBSSID; 
+  }
 
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    try {
+      const res = await API.post("/attendance/mark", {
+        student_id: student.id,
+        timetable_id: currentClass.id,
+        latitude: pos.coords.latitude,
+        longitude: pos.coords.longitude,
+        bssid: actualBSSID, // SENDING REAL DATA NOW
+        rssi: -50
+      });
+      
+      if(res.data.status === "success") {
+          alert("Success! ✅");
+          window.location.href = "/student/dashboard";
+      } else {
+          // This will show you exactly what BSSID the phone found
+          alert(`Failed: ${res.data.message}\nDetected BSSID: ${actualBSSID}`);
+      }
+    } catch (err) { alert("Server Error"); }
+    finally { setMarking(false); }
+  }, () => { alert("GPS Lock Failed"); setMarking(false); }, 
+  { enableHighAccuracy: true });
+};
   return (
     <div style={containerStyle}>
       <div style={webcamWrapper}>
