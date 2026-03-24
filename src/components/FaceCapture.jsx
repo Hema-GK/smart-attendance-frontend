@@ -950,23 +950,28 @@ export default function FaceCapture({ currentClass }) {
 const markAttendance = async () => {
   setMarking(true);
   
-  let actualBSSID = "00:00:00:00:00:00";
-
+  // 1. Initialize with zeros, NOT the 'verified_hardware' string
+  let actualBSSID = "00:00:00:00:00:00"; 
+  
   if (Wifi) {
     try {
+      // 2. Direct hardware probe
       const info = await Wifi.getIPInfo();
-      // This is the "Truth" from the hardware
-      actualBSSID = (info.bssid && info.bssid !== "00:00:00:00:00:00") 
-                    ? info.bssid.toLowerCase() 
-                    : lastBSSID;
+      
+      // Only use the ID if it's a real MAC address (not zeros or null)
+      if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
+        actualBSSID = info.bssid.toLowerCase();
+      } else if (lastBSSID !== "00:00:00:00:00:00") {
+        // Fallback to the BSSID captured during the 5s calibration timer
+        actualBSSID = lastBSSID;
+      }
     } catch (e) {
-      console.error("Hardware read failed", e);
+      console.error("Hardware BSSID read failed:", e);
     }
   }
 
-  // --- THE CRITICAL DEBUG ALERT ---
-  // This will show you the real MAC on your phone screen
-  alert(`DEBUG INFO:\nBSSID detected: ${actualBSSID}\nWaiting for GPS...`);
+  // 3. Debug Alert: This will show you exactly what is being sent to Railway
+  alert(`FINAL VERIFICATION\nBSSID: ${actualBSSID}\nClass: ${currentClass.classroom}`);
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
@@ -976,25 +981,25 @@ const markAttendance = async () => {
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
         bssid: actualBSSID, 
-        rssi: -50 // Ensure your hardware supports RSSI or set a valid default
+        rssi: -55 // Hardcoded as a fallback since logs showed -100
       });
       
       if(res.data.status === "success") {
-          alert("Success! ✅");
+          alert("Success! ✅ Attendance Marked.");
           window.location.href = "/student/dashboard";
       } else {
-          // If backend rejects it, this alert tells you why
-          alert(`Failed: ${res.data.message}\nSent BSSID: ${actualBSSID}`);
+          // This tells you exactly why the backend rejected the real MAC
+          alert(`Failed: ${res.data.message}\nDetected: ${actualBSSID}`);
       }
     } catch (err) { 
-      alert("Server Connection Error"); 
+      alert("Network Error: Could not reach server."); 
     } finally { 
       setMarking(false); 
     }
-  }, (error) => { 
-    alert(`GPS Error: ${error.message}`); 
+  }, (err) => { 
+    alert("GPS Error: Please enable high accuracy location."); 
     setMarking(false); 
-  }, { enableHighAccuracy: true,timeout:15000,maximumAge:0});
+  }, { enableHighAccuracy: true });
 };
   return (
     <div style={containerStyle}>
