@@ -867,14 +867,12 @@
 
 
 
-
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
 
 /** * CRITICAL FIX FOR VERCEL BUILD:
  * We do NOT use a top-level import for Capacitor plugins.
- * This prevents Rollup from failing to resolve the module during the web build.
  */
 let Wifi = null;
 if (typeof window !== "undefined") {
@@ -893,7 +891,8 @@ export default function FaceCapture({ currentClass }) {
   const [marking, setMarking] = useState(false);
   const [cameraReady, setCameraReady] = useState(false);
   const [canFinalize, setCanFinalize] = useState(false);
-  const [countdown, setCountdown] = useState(5); // 5 seconds is enough for GPS calibration
+  const [countdown, setCountdown] = useState(5); 
+  const [isScanning, setIsScanning] = useState(false); // NEW: Track WiFi rescanning state
 
   useEffect(() => {
     let timer;
@@ -904,6 +903,28 @@ export default function FaceCapture({ currentClass }) {
     }
     return () => clearInterval(timer);
   }, [confirmed, countdown]);
+
+  // NEW: Force a hardware refresh of the BSSID if the phone returns zeros
+  const forceWifiRescan = async () => {
+    setIsScanning(true);
+    try {
+      if (Wifi && typeof Wifi.getIPInfo === 'function') {
+        const wifiInfo = await Wifi.getIPInfo();
+        
+        if (wifiInfo.bssid && wifiInfo.bssid !== "00:00:00:00:00:00") {
+          alert(`✅ Success! Detected BSSID: ${wifiInfo.bssid}`);
+        } else {
+          alert("Still seeing 00:00:00:00:00:00. Ensure Hotspot is ON and 'Wi-Fi Scanning' is enabled in Android Settings.");
+        }
+      } else {
+        alert("WiFi Plugin not available. Are you using a physical Android device?");
+      }
+    } catch (err) {
+      alert("Scan failed: " + err.message);
+    } finally {
+      setIsScanning(false);
+    }
+  };
 
   const captureFace = async () => {
     if (!webcamRef.current) return;
@@ -926,15 +947,10 @@ export default function FaceCapture({ currentClass }) {
   const markAttendance = async () => {
     setMarking(true);
     
-    // Default fallback values (will fail backend check, which is correct for web/unauthorized tests)
     let currentBSSID = "00:00:00:00:00:00";
     let currentRSSI = -100; 
 
     try {
-      /**
-       * HARDWARE CHECK:
-       * Only attempts to fetch WiFi data if the plugin loaded successfully (Android).
-       */
       if (Wifi && typeof Wifi.getIPInfo === 'function') {
         const wifiInfo = await Wifi.getIPInfo(); 
         currentBSSID = wifiInfo.bssid || "00:00:00:00:00:00";
@@ -960,7 +976,6 @@ export default function FaceCapture({ currentClass }) {
             alert("Attendance marked successfully! ✅");
             window.location.href = "/student/dashboard";
           } else {
-            // Displays specific failure: "Signal too weak", "Wrong BSSID", etc.
             alert(`Verification Failed: ${res.data.message}`);
           }
         } catch (err) {
@@ -973,7 +988,7 @@ export default function FaceCapture({ currentClass }) {
         alert("GPS error: Please enable Location services and try again.");
         setMarking(false);
       },
-      { enableHighAccuracy: false, timeout: 15000 , maximumAge:30000}
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
   };
 
@@ -981,19 +996,18 @@ export default function FaceCapture({ currentClass }) {
     <div style={containerStyle}>
       <div style={webcamWrapper}>
         <Webcam
-  ref={webcamRef}
-  audio={false}
-  screenshotFormat="image/jpeg"
-  onUserMedia={() => setCameraReady(true)} // This triggers the UI change
-  onUserMediaError={(err) => alert("Camera blocked: " + err)} // Add this for debugging
-  style={webcamStyle}
-  videoConstraints={{ 
-    facingMode: "user",
-    width: { ideal: 1280 },
-    height: { ideal: 720 } 
-  }}
-  playsInline
-/>
+          ref={webcamRef}
+          audio={false}
+          screenshotFormat="image/jpeg"
+          onUserMedia={() => setCameraReady(true)}
+          style={webcamStyle}
+          videoConstraints={{ 
+            facingMode: "user",
+            width: { ideal: 1280 },
+            height: { ideal: 720 } 
+          }}
+          playsInline
+        />
         {!cameraReady && <div style={loadingOverlay}>Initializing Camera...</div>}
         {loading && <div style={scanLineStyle}></div>}
       </div>
@@ -1011,18 +1025,32 @@ export default function FaceCapture({ currentClass }) {
                 CONFIRM IDENTITY
               </button>
             ) : (
-              <button 
-                className="btn-primary" 
-                style={{ 
-                  background: canFinalize ? '#6366f1' : '#4b5563', 
-                  cursor: canFinalize ? 'pointer' : 'not-allowed',
-                  transition: 'background 0.3s ease'
-                }} 
-                onClick={markAttendance} 
-                disabled={!canFinalize || marking}
-              >
-                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `CALIBRATING GPS (${countdown}s)`)}
-              </button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button 
+                  className="btn-primary" 
+                  style={{ 
+                    background: canFinalize ? '#6366f1' : '#4b5563', 
+                    cursor: canFinalize ? 'pointer' : 'not-allowed',
+                    transition: 'background 0.3s ease'
+                  }} 
+                  onClick={markAttendance} 
+                  disabled={!canFinalize || marking}
+                >
+                  {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `CALIBRATING GPS (${countdown}s)`)}
+                </button>
+
+                {/* NEW: Debug/Fix Button for WiFi Issues */}
+                <button 
+                  onClick={forceWifiRescan}
+                  disabled={isScanning}
+                  style={debugButtonStyle}
+                >
+                  {isScanning ? "RESCANNING WIFI..." : "🔄 RESCAN COLLEGE WIFI"}
+                </button>
+                <p style={{ fontSize: '11px', color: '#94a3b8', marginTop: '4px' }}>
+                  If you see "Incorrect Wi-Fi", click Rescan and check logs.
+                </p>
+              </div>
             )}
           </div>
         )}
@@ -1031,7 +1059,7 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// STYLES (Kept consistent with your UI)
+// STYLES
 const containerStyle = { textAlign: "center", width: '100%', maxWidth: '500px', margin: '0 auto' };
 const webcamWrapper = { position: 'relative', borderRadius: '16px', overflow: 'hidden', background: '#000', border: '2px solid rgba(74, 158, 255, 0.3)', boxShadow: '0 10px 30px rgba(0,0,0,0.5)', aspectRatio: '4/3' };
 const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
@@ -1039,3 +1067,15 @@ const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', h
 const scanLineStyle = { position: 'absolute', left: 0, width: '100%', height: '3px', background: '#4facfe', boxShadow: '0 0 15px #4facfe', zIndex: 10, animation: 'scan 2s linear infinite' };
 const resultBox = { padding: '25px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.1)' };
 const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', fontWeight: '500', color: 'white' };
+
+// NEW: Style for the debug button
+const debugButtonStyle = {
+  background: 'transparent',
+  border: '1px border rgba(255,255,255,0.2)',
+  color: '#94a3b8',
+  padding: '8px 12px',
+  borderRadius: '8px',
+  fontSize: '12px',
+  cursor: 'pointer',
+  marginTop: '10px'
+};
