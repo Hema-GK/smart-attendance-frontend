@@ -2,7 +2,11 @@ import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
 import { registerPlugin } from '@capacitor/core';
+
+
 const WiFiHardware = registerPlugin('WiFiHardware');
+
+
 
 let Wifi = null;
 if (typeof window !== "undefined") {
@@ -59,6 +63,7 @@ export default function FaceCapture({ currentClass }) {
       setCanFinalize(true);
     }
     return () => clearInterval(timer);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmed, countdown]);
 
   const captureFace = async () => {
@@ -76,19 +81,21 @@ export default function FaceCapture({ currentClass }) {
       setLoading(false); 
     }
   };
+const Wifi = registerPlugin('Wifi');
+
 const markAttendance = async () => {
     setMarking(true);
-    
-    // We use a fresh variable name so there is NO chance of using the old one
-    let student_hardware_id = "NOT_READ_YET"; 
+    let finalBSSID = "00:00:00:00:00:00";
+    const result = await WiFiHardware.getRealBSSID();
+    console.log("Real BSSID is: ", result.bssid);
 
     try {
-        const info = await Wifi.getIPInfo();
-        // Force the real MAC. If this fails, it sends 'NOT_READ_YET'
-        // which will help us debug if the Java bridge is alive.
-        student_hardware_id = info.bssid ? info.bssid.toLowerCase() : "HARDWARE_BLOCKED";
+        // CALL THE NEW METHOD WE JUST CREATED
+        const result = await Wifi.getBSSID();
+        finalBSSID = result.bssid;
     } catch (e) {
-        student_hardware_id = "READ_ERROR";
+        console.error("Hardware BSSID blocked:", e);
+        // Do NOT set it to 'wifi_verified_hardware' here!
     }
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -98,27 +105,21 @@ const markAttendance = async () => {
                 timetable_id: currentClass.id,
                 latitude: pos.coords.latitude,
                 longitude: pos.coords.longitude,
-                bssid: student_hardware_id, 
+                bssid: finalBSSID, 
                 rssi: -55
             });
 
             if (res.data.status === "success") {
                 alert("Success! Hardware Verified. ✅");
-                window.location.href = "/student/dashboard";
             } else {
-                // Look at the "detected" value in the alert. 
-                // It should NO LONGER say "wifi_verified_hardware".
-                alert(`Verification Failed:\n${res.data.message}`);
+                alert(`Failed: ${res.data.message}\nDetected: ${finalBSSID}`);
             }
         } catch (err) {
             alert("Network Error");
         } finally {
             setMarking(false);
         }
-    }, (err) => {
-        alert("GPS Error");
-        setMarking(false);
-    }, { enableHighAccuracy: true });
+    }, (err) => alert("GPS Error"), { enableHighAccuracy: true });
 };
   return (
     <div style={containerStyle}>
