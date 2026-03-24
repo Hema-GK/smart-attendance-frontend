@@ -868,7 +868,6 @@
 
 
 
-
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
@@ -974,7 +973,7 @@ export default function FaceCapture({ currentClass }) {
         alert("GPS error: Please enable Location services and try again.");
         setMarking(false);
       },
-      { enableHighAccuracy: false, timeout: 10000 , maximumAge:0}
+      { enableHighAccuracy: false, timeout: 15000 , maximumAge:30000}
     );
   };
 
