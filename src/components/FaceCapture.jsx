@@ -870,14 +870,18 @@
 
 
 
-
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
 
 let Wifi = null;
 if (typeof window !== "undefined") {
-  import('capacitor-wifi').then(mod => { Wifi = mod.Wifi; }).catch(() => {});
+  // Dynamic import to handle Capacitor plugins in a web/mobile hybrid environment
+  import('capacitor-wifi').then(mod => { 
+    Wifi = mod.Wifi; 
+  }).catch(() => {
+    console.warn("Wifi plugin not available on this platform.");
+  });
 }
 
 export default function FaceCapture({ currentClass }) {
@@ -891,24 +895,29 @@ export default function FaceCapture({ currentClass }) {
   const [countdown, setCountdown] = useState(5); 
   const [lastBSSID, setLastBSSID] = useState("00:00:00:00:00:00");
 
-  // Logic to force the hardware to wake up
+  /**
+   * Proactive Hardware Probe:
+   * Forces the Wifi chip to report its current BSSID.
+   */
   const triggerHardwareScan = async () => {
-    if (!Wifi) return;
+    if (!Wifi) return false;
     try {
-      // First, check if we can even talk to the plugin
       const info = await Wifi.getIPInfo();
-      console.log("Hardware Probe:", info.bssid);
-      
+      // If we get a real ID, update the state
       if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
-        setLastBSSID(info.bssid);
+        setLastBSSID(info.bssid.toLowerCase()); // Always lowercase for DB matching
         return true;
       }
     } catch (e) {
-      console.error("Hardware scan failed", e);
+      console.error("Hardware BSSID scan failed:", e);
     }
     return false;
   };
 
+  /**
+   * Sync and Calibration Timer:
+   * While the student is confirming, we scan for BSSID every second.
+   */
   useEffect(() => {
     let timer;
     if (confirmed && countdown > 0) {
@@ -928,65 +937,106 @@ export default function FaceCapture({ currentClass }) {
     try {
       const image = webcamRef.current.getScreenshot();
       const res = await API.post("/face/recognize", { image });
-      if (res.data.status === "Face recognized") { setStudent(res.data.student); }
-    } catch (err) { alert("Recognition failed."); }
-    finally { setLoading(false); }
+      if (res.data.status === "Face recognized") { 
+        setStudent(res.data.student); 
+      }
+    } catch (err) { 
+      alert("Face recognition failed. Please try again."); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const markAttendance = async () => {
     setMarking(true);
     
-    // Final hardware attempt
+    // Final check for BSSID before submission
     await triggerHardwareScan();
     
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        const res = await API.post("/attendance/mark", {
-          student_id: student.id,
-          timetable_id: currentClass.id,
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          bssid: lastBSSID, // This will be the most recent non-zero BSSID found
-          rssi: -50
-        });
-        
-        if(res.data.status === "success") {
-            alert("Attendance Success! ✅");
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await API.post("/attendance/mark", {
+            student_id: student.id,
+            timetable_id: currentClass.id,
+            latitude: pos.coords.latitude,
+            longitude: pos.coords.longitude,
+            bssid: lastBSSID, 
+            rssi: -50
+          });
+          
+          if (res.data.status === "success") {
+            alert("Attendance marked successfully! ✅");
             window.location.href = "/student/dashboard";
-        } else {
-            alert(`Failed: ${res.data.message}\nBSSID detected: ${lastBSSID}`);
+          } else {
+            // Detailed error to help you debug in real-time
+            alert(`Verification Failed: ${res.data.message}\nSent BSSID: ${lastBSSID}`);
+          }
+        } catch (err) { 
+          alert(err.response?.data?.message || "Server error. Check your Railway logs."); 
+        } finally { 
+          setMarking(false); 
         }
-      } catch (err) { alert("Server connectivity issue."); }
-      finally { setMarking(false); }
-    }, () => { 
-        alert("GPS Error. Ensure Blue Dot is visible in Maps."); 
+      }, 
+      (error) => { 
+        alert("GPS Error. Please ensure Google Maps shows a Blue Dot at your location."); 
         setMarking(false); 
-    }, { enableHighAccuracy: true });
+      }, 
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
   };
 
   return (
     <div style={containerStyle}>
       <div style={webcamWrapper}>
-        <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" onUserMedia={() => setCameraReady(true)} style={webcamStyle} videoConstraints={{ facingMode: "user" }} playsInline />
+        <Webcam 
+          ref={webcamRef} 
+          audio={false} 
+          screenshotFormat="image/jpeg" 
+          onUserMedia={() => setCameraReady(true)} 
+          style={webcamStyle} 
+          videoConstraints={{ facingMode: "user" }} 
+          playsInline 
+        />
+        {!cameraReady && <div style={loadingOverlay}>Starting Camera...</div>}
       </div>
 
       <div style={{ marginTop: '20px', width: '90%' }}>
         {!student ? (
-          <button className="btn-primary" onClick={captureFace} disabled={!cameraReady || loading}>
-            {loading ? "SCANNING..." : "START SCAN"}
+          <button 
+            className="btn-primary" 
+            onClick={captureFace} 
+            disabled={!cameraReady || loading}
+          >
+            {loading ? "RECOGNIZING..." : "START SCAN"}
           </button>
         ) : (
           <div style={resultBox}>
-            <p style={{color: 'white', fontWeight: 'bold'}}>User: {student.name}</p>
-            <p style={{fontSize: '11px', color: lastBSSID === "00:00:00:00:00:00" ? "#ff4444" : "#44ff44"}}>
-                BSSID: {lastBSSID === "00:00:00:00:00:00" ? "Searching for Router..." : lastBSSID}
-            </p>
+            <p style={welcomeHeader}>User: <span style={{color: '#4facfe'}}>{student.name}</span></p>
+            
+            <div style={statusBadge(lastBSSID)}>
+               {lastBSSID === "00:00:00:00:00:00" ? "🔄 Syncing Wi-Fi..." : `📡 Connected: ${lastBSSID}`}
+            </div>
             
             {!confirmed ? (
-              <button className="btn-primary" onClick={() => setConfirmed(true)}>CONFIRM</button>
+              <button 
+                className="btn-primary" 
+                style={{ background: '#22c55e', marginTop: '15px' }} 
+                onClick={() => setConfirmed(true)}
+              >
+                CONFIRM IDENTITY
+              </button>
             ) : (
-              <button className="btn-primary" onClick={markAttendance} disabled={marking || !canFinalize}>
-                {marking ? "WAIT..." : (canFinalize ? "SUBMIT" : `CALIBRATING (${countdown}s)`)}
+              <button 
+                className="btn-primary" 
+                style={{ 
+                  background: canFinalize ? '#6366f1' : '#4b5563',
+                  marginTop: '15px'
+                }} 
+                onClick={markAttendance} 
+                disabled={marking || !canFinalize}
+              >
+                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `CALIBRATING (${countdown}s)`)}
               </button>
             )}
           </div>
@@ -996,7 +1046,21 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
+// STYLES
 const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#0f172a', padding: '20px' };
-const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6' };
-const webcamStyle = { width: '100%', height: 'auto' };
-const resultBox = { padding: '20px', background: '#1e293b', borderRadius: '15px', textAlign: 'center' };
+const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' };
+const webcamStyle = { width: '100%', height: 'auto', display: 'block' };
+const loadingOverlay = { position: 'absolute', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#020617', color: '#3b82f6' };
+const resultBox = { padding: '25px', background: '#1e293b', borderRadius: '15px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' };
+const welcomeHeader = { color: 'white', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '10px' };
+
+const statusBadge = (bssid) => ({
+  fontSize: '11px',
+  padding: '6px 12px',
+  borderRadius: '20px',
+  display: 'inline-block',
+  background: bssid === "00:00:00:00:00:00" ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
+  color: bssid === "00:00:00:00:00:00" ? '#f87171' : '#4ade80',
+  border: `1px solid ${bssid === "00:00:00:00:00:00" ? '#f87171' : '#4ade80'}`,
+  transition: 'all 0.3s ease'
+});
