@@ -865,7 +865,6 @@
 // const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' };
 // const retakeBtn = { background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '15px', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' };
 
-
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
@@ -884,32 +883,28 @@ export default function FaceCapture({ currentClass }) {
   const [cameraReady, setCameraReady] = useState(false);
   const [canFinalize, setCanFinalize] = useState(false);
   const [countdown, setCountdown] = useState(5); 
-  const [isScanning, setIsScanning] = useState(false);
   const [lastBSSID, setLastBSSID] = useState("00:00:00:00:00:00");
 
+  // AUTO-RETRY LOGIC: Scans every second to "catch" the BSSID from the hardware
   useEffect(() => {
     let timer;
     if (confirmed && countdown > 0) {
-      timer = setInterval(() => setCountdown((prev) => prev - 1), 1000);
+      timer = setInterval(async () => {
+        setCountdown((prev) => prev - 1);
+        if (Wifi) {
+          try {
+            const info = await Wifi.getIPInfo();
+            if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
+              setLastBSSID(info.bssid);
+            }
+          } catch (e) { console.log("Scanning..."); }
+        }
+      }, 1000);
     } else if (countdown === 0) {
       setCanFinalize(true);
     }
     return () => clearInterval(timer);
   }, [confirmed, countdown]);
-
-  // Force Hardware Refresh
-  const forceWifiRescan = async () => {
-    setIsScanning(true);
-    try {
-      if (Wifi) {
-        const wifiInfo = await Wifi.getIPInfo();
-        const bssid = wifiInfo.bssid || "00:00:00:00:00:00";
-        setLastBSSID(bssid);
-        alert(bssid === "00:00:00:00:00:00" ? "Zeros detected. Check GPS lock!" : `BSSID Found: ${bssid}`);
-      }
-    } catch (err) { alert("Scan error: " + err.message); }
-    finally { setIsScanning(false); }
-  };
 
   const captureFace = async () => {
     if (!webcamRef.current) return;
@@ -918,17 +913,18 @@ export default function FaceCapture({ currentClass }) {
       const image = webcamRef.current.getScreenshot();
       const res = await API.post("/face/recognize", { image });
       if (res.data.status === "Face recognized") { setStudent(res.data.student); }
-    } catch (err) { alert("Face Scan Failed."); }
+    } catch (err) { alert("Recognition failed."); }
     finally { setLoading(false); }
   };
 
   const markAttendance = async () => {
     setMarking(true);
-    // Final check before sending to Railway
-    let bssidToSend = lastBSSID;
-    if (Wifi && bssidToSend === "00:00:00:00:00:00") {
-        const refresh = await Wifi.getIPInfo();
-        bssidToSend = refresh.bssid || "00:00:00:00:00:00";
+    
+    // Ensure we use the latest hardware value
+    let bssidToSubmit = lastBSSID;
+    if (Wifi && bssidToSubmit === "00:00:00:00:00:00") {
+        const fresh = await Wifi.getIPInfo();
+        bssidToSubmit = fresh.bssid || "00:00:00:00:00:00";
     }
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -938,13 +934,19 @@ export default function FaceCapture({ currentClass }) {
           timetable_id: currentClass.id,
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
-          bssid: bssidToSend,
-          rssi: -50
+          bssid: bssidToSubmit,
+          rssi: -55
         });
-        alert(res.data.status === "success" ? "Success! ✅" : `Failed: ${res.data.message}`);
-      } catch (err) { alert("Server error."); }
+        
+        if(res.data.status === "success") {
+            alert("Attendance marked successfully! ✅");
+            window.location.href = "/student/dashboard";
+        } else {
+            alert(`Failed: ${res.data.message}\nBSSID sent: ${bssidToSubmit}`);
+        }
+      } catch (err) { alert("Server Error."); }
       finally { setMarking(false); }
-    }, () => { alert("GPS Lock Failed."); setMarking(false); }, 
+    }, () => { alert("GPS Lock Failed. Go to Google Maps first."); setMarking(false); }, 
     { enableHighAccuracy: true });
   };
 
@@ -961,11 +963,18 @@ export default function FaceCapture({ currentClass }) {
           </button>
         ) : (
           <div style={resultBox}>
-            <button onClick={forceWifiRescan} style={floatingButtonStyle}>{isScanning ? "..." : "🔄 BSSID"}</button>
-            <p style={{color: 'white', marginBottom: '10px'}}>Welcome, {student.name}</p>
-            <button className="btn-primary" onClick={confirmed ? markAttendance : () => setConfirmed(true)} disabled={marking || (confirmed && !canFinalize)}>
-              {marking ? "VERIFYING..." : (confirmed ? (canFinalize ? "SUBMIT" : `WAIT ${countdown}s`) : "CONFIRM")}
-            </button>
+            <p style={{color: 'white', fontWeight: 'bold'}}>Welcome, {student.name}</p>
+            <p style={{fontSize: '11px', color: lastBSSID === "00:00:00:00:00:00" ? "#f87171" : "#4ade80", margin: '5px 0'}}>
+                Network Status: {lastBSSID === "00:00:00:00:00:00" ? "Searching for Wi-Fi..." : "Ready ✅"}
+            </p>
+            
+            {!confirmed ? (
+              <button className="btn-primary" style={{background: '#22c55e'}} onClick={() => setConfirmed(true)}>CONFIRM</button>
+            ) : (
+              <button className="btn-primary" onClick={markAttendance} disabled={marking || !canFinalize}>
+                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT" : `VERIFYING WIFI (${countdown}s)`)}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -976,5 +985,4 @@ export default function FaceCapture({ currentClass }) {
 const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#0f172a', padding: '20px' };
 const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6' };
 const webcamStyle = { width: '100%', height: 'auto' };
-const resultBox = { padding: '20px', background: '#1e293b', borderRadius: '15px', position: 'relative', textAlign: 'center' };
-const floatingButtonStyle = { position: 'absolute', top: '-20px', right: '10px', background: '#f59e0b', color: 'black', padding: '10px', borderRadius: '50px', border: 'none', fontWeight: 'bold', zIndex: 100 };
+const resultBox = { padding: '20px', background: '#1e293b', borderRadius: '15px', textAlign: 'center' };
