@@ -875,7 +875,7 @@ if (typeof window !== "undefined") {
   import('capacitor-wifi').then(mod => {
     Wifi = mod.Wifi;
   }).catch(() => {
-    console.log("Wifi plugin not available in this environment.");
+    console.log("Wifi plugin not available.");
   });
 }
 
@@ -906,9 +906,9 @@ export default function FaceCapture({ currentClass }) {
       if (Wifi && typeof Wifi.getIPInfo === 'function') {
         const wifiInfo = await Wifi.getIPInfo();
         if (wifiInfo.bssid && wifiInfo.bssid !== "00:00:00:00:00:00") {
-          alert(`✅ Success! BSSID: ${wifiInfo.bssid}`);
+          alert(`✅ Success! Detected BSSID: ${wifiInfo.bssid}`);
         } else {
-          alert("Still 00:00... Enable 'Wi-Fi Scanning' in Android Location settings.");
+          alert("Still seeing 00:00... Ensure 'Wi-Fi Scanning' is enabled in Android Settings.");
         }
       } else {
         alert("WiFi Plugin not active.");
@@ -973,7 +973,7 @@ export default function FaceCapture({ currentClass }) {
         } finally { setMarking(false); }
       },
       (error) => {
-        alert("GPS error: Enable Location.");
+        alert("GPS error: Enable Location services.");
         setMarking(false);
       },
       { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
@@ -992,23 +992,23 @@ export default function FaceCapture({ currentClass }) {
           videoConstraints={{ facingMode: "user" }}
           playsInline
         />
-        {!cameraReady && <div style={loadingOverlay}>Initializing...</div>}
+        {!cameraReady && <div style={loadingOverlay}>Initializing Camera...</div>}
       </div>
 
-      <div style={{ marginTop: '10px' }}>
+      <div style={{ marginTop: '20px', width: '100%' }}>
         {!student ? (
           <button className="btn-primary" onClick={captureFace} disabled={!cameraReady || loading}>
-            {loading ? "SCANNING..." : "START SCAN"}
+            {loading ? "SCANNING FACE..." : "START SCAN"}
           </button>
         ) : (
           <div style={resultBox}>
-            {/* MOVED TO TOP: This makes it visible even if the bottom is cut off */}
+            {/* FLOATING ACTION BUTTON: This ensures it is always on top and visible */}
             <button 
               onClick={forceWifiRescan}
               disabled={isScanning}
-              style={debugButtonStyle}
+              style={floatingButtonStyle}
             >
-              {isScanning ? "RESCANNING..." : "🔄 REFRESH WIFI"}
+              {isScanning ? "..." : "🔄 BSSID"}
             </button>
 
             <p style={welcomeText}>Welcome, <span style={{color: '#4facfe'}}>{student.name}</span></p>
@@ -1028,7 +1028,7 @@ export default function FaceCapture({ currentClass }) {
                 onClick={markAttendance} 
                 disabled={!canFinalize || marking}
               >
-                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT" : `WAIT ${countdown}s`)}
+                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `WAIT ${countdown}s`)}
               </button>
             )}
           </div>
@@ -1038,22 +1038,27 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px' };
-const webcamWrapper = { position: 'relative', width: '90%', borderRadius: '12px', overflow: 'hidden', aspectRatio: '4/3', background: '#000' };
+// STYLES
+const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px', minHeight: '100vh', position: 'relative' };
+const webcamWrapper = { position: 'relative', width: '90%', borderRadius: '16px', overflow: 'hidden', background: '#000', aspectRatio: '4/3' };
 const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
-const loadingOverlay = { position: 'absolute', top: 0, color: '#4facfe', background: '#020617', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' };
-const resultBox = { width: '90%', padding: '15px', background: 'rgba(255,255,255,0.1)', borderRadius: '12px', marginTop: '10px' };
-const welcomeText = { fontSize: '1rem', margin: '10px 0', color: 'white' };
+const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617' };
+const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', width: '90%', position: 'relative' };
+const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', color: 'white' };
 
-const debugButtonStyle = {
+// NEW: Floating button style - ignores layout and sits in the top right corner of the box
+const floatingButtonStyle = {
+  position: 'absolute',
+  top: '-15px',
+  right: '10px',
   background: '#f59e0b',
   color: '#000',
-  padding: '12px',
-  borderRadius: '8px',
-  fontSize: '14px',
+  padding: '8px 12px',
+  borderRadius: '20px',
+  fontSize: '12px',
   fontWeight: 'bold',
-  border: 'none',
-  width: '100%',
-  marginBottom: '10px',
-  display: 'block' // Ensures it takes its own line
+  border: '2px solid #000',
+  zIndex: 100,
+  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
+  cursor: 'pointer'
 };
