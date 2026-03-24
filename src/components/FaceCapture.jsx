@@ -873,6 +873,8 @@
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
+import { registerPlugin } from '@capacitor/core';
+const WiFiHardware = registerPlugin('WiFiHardware');
 
 let Wifi = null;
 if (typeof window !== "undefined") {
@@ -946,60 +948,48 @@ export default function FaceCapture({ currentClass }) {
       setLoading(false); 
     }
   };
-
 const markAttendance = async () => {
-  setMarking(true);
-  
-  // 1. Initialize with zeros, NOT the 'verified_hardware' string
-  let actualBSSID = "00:00:00:00:00:00"; 
-  
-  if (Wifi) {
+    setMarking(true);
+    
+    // Step 1: Get the REAL BSSID from the Capacitor Bridge
+    // If this returns "wifi_verified_hardware", you MUST find where 
+    // that string is hardcoded in your project and delete it.
+    let currentBSSID = "00:00:00:00:00:00";
     try {
-      // 2. Direct hardware probe
-      const info = await Wifi.getIPInfo();
-      
-      // Only use the ID if it's a real MAC address (not zeros or null)
-      if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
-        actualBSSID = info.bssid.toLowerCase();
-      } else if (lastBSSID !== "00:00:00:00:00:00") {
-        // Fallback to the BSSID captured during the 5s calibration timer
-        actualBSSID = lastBSSID;
-      }
+        const info = await Wifi.getIPInfo(); 
+        currentBSSID = info.bssid ? info.bssid.toLowerCase() : "00:00:00:00:00:00";
     } catch (e) {
-      console.error("Hardware BSSID read failed:", e);
+        console.error("Hardware read failed");
     }
-  }
 
-  // 3. Debug Alert: This will show you exactly what is being sent to Railway
-  alert(`FINAL VERIFICATION\nBSSID: ${actualBSSID}\nClass: ${currentClass.classroom}`);
+    // Step 2: Get GPS
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        try {
+            const res = await API.post("/attendance/mark", {
+                student_id: student.id,
+                timetable_id: currentClass.id,
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                bssid: currentBSSID, // This must be the 92:8e... address
+                rssi: -55
+            });
 
-  navigator.geolocation.getCurrentPosition(async (pos) => {
-    try {
-      const res = await API.post("/attendance/mark", {
-        student_id: student.id,
-        timetable_id: currentClass.id,
-        latitude: pos.coords.latitude,
-        longitude: pos.coords.longitude,
-        bssid: actualBSSID, 
-        rssi: -55 // Hardcoded as a fallback since logs showed -100
-      });
-      
-      if(res.data.status === "success") {
-          alert("Success! ✅ Attendance Marked.");
-          window.location.href = "/student/dashboard";
-      } else {
-          // This tells you exactly why the backend rejected the real MAC
-          alert(`Failed: ${res.data.message}\nDetected: ${actualBSSID}`);
-      }
-    } catch (err) { 
-      alert("Network Error: Could not reach server."); 
-    } finally { 
-      setMarking(false); 
-    }
-  }, (err) => { 
-    alert("GPS Error: Please enable high accuracy location."); 
-    setMarking(false); 
-  }, { enableHighAccuracy: true });
+            if (res.data.status === "success") {
+                alert("Success! Both GPS and Wi-Fi Verified. ✅");
+                window.location.href = "/student/dashboard";
+            } else {
+                // This alert will tell you exactly which one failed
+                alert(`Verification Failed:\n${res.data.message}`);
+            }
+        } catch (err) {
+            alert("Server Error");
+        } finally {
+            setMarking(false);
+        }
+    }, (err) => {
+        alert("GPS Error: Turn on High Accuracy Location");
+        setMarking(false);
+    }, { enableHighAccuracy: true });
 };
   return (
     <div style={containerStyle}>
