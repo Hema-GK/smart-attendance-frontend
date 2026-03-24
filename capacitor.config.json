@@ -6,5 +6,16 @@
     "androidScheme": "https",
     "cleartext": true,
     "allowMixedContent": true
+  },
+  "android": {
+    "allowMixedContent": true,
+    "buildOptions": {
+      "releaseType": "APK"
+    }
+  },
+  "plugins": {
+    "CapacitorGeolocation": {
+      "forceShowStatus": true
+    }
   }
 }

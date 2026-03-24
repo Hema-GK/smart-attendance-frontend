@@ -7,7 +7,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:8.2.0'
+        classpath 'com.android.tools.build:gradle:8.2.1'
         classpath 'com.google.gms:google-services:4.4.4'
 
         // NOTE: Do not place your application dependencies here; they belong
@@ -27,14 +27,13 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+// android/build.gradle
 subprojects {
     afterEvaluate { project ->
-        if (project.hasProperty('android')) {
+        if (project.name == 'capacitor-wifi') {
             project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
+                namespace "com.digaus.capwifi.capacitorwifi"
+                compileSdk 35 // Ensure it matches your app's compileSdk
             }
         }
     }

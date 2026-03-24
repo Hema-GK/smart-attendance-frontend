@@ -1,6 +1,7 @@
 apply plugin: 'com.android.application'
 
 android {
+    // FIX: This explicitly defines the namespace required by newer Android Studio versions
     namespace "com.example.app"
 
     compileSdk 35
@@ -20,11 +21,9 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility JavaVersion.VERSION_21
+        targetCompatibility JavaVersion.VERSION_21
     }
-
-    // REMOVED: kotlinOptions block (not needed for Java)
 
     buildTypes {
         release {

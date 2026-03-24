@@ -974,7 +974,7 @@ export default function FaceCapture({ currentClass }) {
         alert("GPS error: Please enable Location services and try again.");
         setMarking(false);
       },
-      { enableHighAccuracy: true, timeout: 15000 }
+      { enableHighAccuracy: false, timeout: 10000 , maximumAge:0}
     );
   };
 
