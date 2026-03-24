@@ -865,6 +865,12 @@
 // const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' };
 // const retakeBtn = { background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', marginTop: '15px', cursor: 'pointer', fontSize: '0.8rem', textDecoration: 'underline' };
 
+
+
+
+
+
+
 import { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
@@ -885,20 +891,30 @@ export default function FaceCapture({ currentClass }) {
   const [countdown, setCountdown] = useState(5); 
   const [lastBSSID, setLastBSSID] = useState("00:00:00:00:00:00");
 
-  // AUTO-RETRY LOGIC: Scans every second to "catch" the BSSID from the hardware
+  // Logic to force the hardware to wake up
+  const triggerHardwareScan = async () => {
+    if (!Wifi) return;
+    try {
+      // First, check if we can even talk to the plugin
+      const info = await Wifi.getIPInfo();
+      console.log("Hardware Probe:", info.bssid);
+      
+      if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
+        setLastBSSID(info.bssid);
+        return true;
+      }
+    } catch (e) {
+      console.error("Hardware scan failed", e);
+    }
+    return false;
+  };
+
   useEffect(() => {
     let timer;
     if (confirmed && countdown > 0) {
       timer = setInterval(async () => {
         setCountdown((prev) => prev - 1);
-        if (Wifi) {
-          try {
-            const info = await Wifi.getIPInfo();
-            if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
-              setLastBSSID(info.bssid);
-            }
-          } catch (e) { console.log("Scanning..."); }
-        }
+        await triggerHardwareScan();
       }, 1000);
     } else if (countdown === 0) {
       setCanFinalize(true);
@@ -920,13 +936,9 @@ export default function FaceCapture({ currentClass }) {
   const markAttendance = async () => {
     setMarking(true);
     
-    // Ensure we use the latest hardware value
-    let bssidToSubmit = lastBSSID;
-    if (Wifi && bssidToSubmit === "00:00:00:00:00:00") {
-        const fresh = await Wifi.getIPInfo();
-        bssidToSubmit = fresh.bssid || "00:00:00:00:00:00";
-    }
-
+    // Final hardware attempt
+    await triggerHardwareScan();
+    
     navigator.geolocation.getCurrentPosition(async (pos) => {
       try {
         const res = await API.post("/attendance/mark", {
@@ -934,20 +946,22 @@ export default function FaceCapture({ currentClass }) {
           timetable_id: currentClass.id,
           latitude: pos.coords.latitude,
           longitude: pos.coords.longitude,
-          bssid: bssidToSubmit,
-          rssi: -55
+          bssid: lastBSSID, // This will be the most recent non-zero BSSID found
+          rssi: -50
         });
         
         if(res.data.status === "success") {
-            alert("Attendance marked successfully! ✅");
+            alert("Attendance Success! ✅");
             window.location.href = "/student/dashboard";
         } else {
-            alert(`Failed: ${res.data.message}\nBSSID sent: ${bssidToSubmit}`);
+            alert(`Failed: ${res.data.message}\nBSSID detected: ${lastBSSID}`);
         }
-      } catch (err) { alert("Server Error."); }
+      } catch (err) { alert("Server connectivity issue."); }
       finally { setMarking(false); }
-    }, () => { alert("GPS Lock Failed. Go to Google Maps first."); setMarking(false); }, 
-    { enableHighAccuracy: true });
+    }, () => { 
+        alert("GPS Error. Ensure Blue Dot is visible in Maps."); 
+        setMarking(false); 
+    }, { enableHighAccuracy: true });
   };
 
   return (
@@ -963,16 +977,16 @@ export default function FaceCapture({ currentClass }) {
           </button>
         ) : (
           <div style={resultBox}>
-            <p style={{color: 'white', fontWeight: 'bold'}}>Welcome, {student.name}</p>
-            <p style={{fontSize: '11px', color: lastBSSID === "00:00:00:00:00:00" ? "#f87171" : "#4ade80", margin: '5px 0'}}>
-                Network Status: {lastBSSID === "00:00:00:00:00:00" ? "Searching for Wi-Fi..." : "Ready ✅"}
+            <p style={{color: 'white', fontWeight: 'bold'}}>User: {student.name}</p>
+            <p style={{fontSize: '11px', color: lastBSSID === "00:00:00:00:00:00" ? "#ff4444" : "#44ff44"}}>
+                BSSID: {lastBSSID === "00:00:00:00:00:00" ? "Searching for Router..." : lastBSSID}
             </p>
             
             {!confirmed ? (
-              <button className="btn-primary" style={{background: '#22c55e'}} onClick={() => setConfirmed(true)}>CONFIRM</button>
+              <button className="btn-primary" onClick={() => setConfirmed(true)}>CONFIRM</button>
             ) : (
               <button className="btn-primary" onClick={markAttendance} disabled={marking || !canFinalize}>
-                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT" : `VERIFYING WIFI (${countdown}s)`)}
+                {marking ? "WAIT..." : (canFinalize ? "SUBMIT" : `CALIBRATING (${countdown}s)`)}
               </button>
             )}
           </div>
