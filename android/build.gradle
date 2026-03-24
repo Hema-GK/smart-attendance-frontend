@@ -26,17 +26,3 @@ task clean(type: Delete) {
 }
 
 // Critical Fix: Aligning the capacitor-wifi module namespace
-subprojects {
-    afterEvaluate { project ->
-        if (project.name == 'capacitor-wifi') {
-            project.android {
-                // This MUST match the folder structure: com/digaus/capwifi
-                namespace "com.example.app"
-                compileSdk 35
-                defaultConfig {
-                    minSdk 24
-                }
-            }
-        }
-    }
-}
