@@ -950,15 +950,23 @@ export default function FaceCapture({ currentClass }) {
 const markAttendance = async () => {
   setMarking(true);
   
-  // 1. Force a fresh hardware read right before submitting
   let actualBSSID = "00:00:00:00:00:00";
+
   if (Wifi) {
-    const info = await Wifi.getIPInfo();
-    // Use the real ID if found, otherwise stay at zeros
-    actualBSSID = (info.bssid && info.bssid !== "00:00:00:00:00:00") 
-                  ? info.bssid.toLowerCase() 
-                  : lastBSSID; 
+    try {
+      const info = await Wifi.getIPInfo();
+      // This is the "Truth" from the hardware
+      actualBSSID = (info.bssid && info.bssid !== "00:00:00:00:00:00") 
+                    ? info.bssid.toLowerCase() 
+                    : lastBSSID;
+    } catch (e) {
+      console.error("Hardware read failed", e);
+    }
   }
+
+  // --- THE CRITICAL DEBUG ALERT ---
+  // This will show you the real MAC on your phone screen
+  alert(`DEBUG INFO:\nBSSID detected: ${actualBSSID}\nWaiting for GPS...`);
 
   navigator.geolocation.getCurrentPosition(async (pos) => {
     try {
@@ -967,21 +975,26 @@ const markAttendance = async () => {
         timetable_id: currentClass.id,
         latitude: pos.coords.latitude,
         longitude: pos.coords.longitude,
-        bssid: actualBSSID, // SENDING REAL DATA NOW
-        rssi: -50
+        bssid: actualBSSID, 
+        rssi: -50 // Ensure your hardware supports RSSI or set a valid default
       });
       
       if(res.data.status === "success") {
           alert("Success! ✅");
           window.location.href = "/student/dashboard";
       } else {
-          // This will show you exactly what BSSID the phone found
-          alert(`Failed: ${res.data.message}\nDetected BSSID: ${actualBSSID}`);
+          // If backend rejects it, this alert tells you why
+          alert(`Failed: ${res.data.message}\nSent BSSID: ${actualBSSID}`);
       }
-    } catch (err) { alert("Server Error"); }
-    finally { setMarking(false); }
-  }, () => { alert("GPS Lock Failed"); setMarking(false); }, 
-  { enableHighAccuracy: true });
+    } catch (err) { 
+      alert("Server Connection Error"); 
+    } finally { 
+      setMarking(false); 
+    }
+  }, (error) => { 
+    alert(`GPS Error: ${error.message}`); 
+    setMarking(false); 
+  }, { enableHighAccuracy: true,timeout:15000,maximumAge:0});
 };
   return (
     <div style={containerStyle}>
