@@ -872,11 +872,7 @@ import API from "../api/api";
 
 let Wifi = null;
 if (typeof window !== "undefined") {
-  import('capacitor-wifi').then(mod => {
-    Wifi = mod.Wifi;
-  }).catch(() => {
-    console.log("Wifi plugin not available.");
-  });
+  import('capacitor-wifi').then(mod => { Wifi = mod.Wifi; }).catch(() => {});
 }
 
 export default function FaceCapture({ currentClass }) {
@@ -889,6 +885,7 @@ export default function FaceCapture({ currentClass }) {
   const [canFinalize, setCanFinalize] = useState(false);
   const [countdown, setCountdown] = useState(5); 
   const [isScanning, setIsScanning] = useState(false);
+  const [lastBSSID, setLastBSSID] = useState("00:00:00:00:00:00");
 
   useEffect(() => {
     let timer;
@@ -900,137 +897,75 @@ export default function FaceCapture({ currentClass }) {
     return () => clearInterval(timer);
   }, [confirmed, countdown]);
 
+  // Force Hardware Refresh
   const forceWifiRescan = async () => {
     setIsScanning(true);
     try {
-      if (Wifi && typeof Wifi.getIPInfo === 'function') {
+      if (Wifi) {
         const wifiInfo = await Wifi.getIPInfo();
-        if (wifiInfo.bssid && wifiInfo.bssid !== "00:00:00:00:00:00") {
-          alert(`✅ Success! Detected BSSID: ${wifiInfo.bssid}`);
-        } else {
-          alert("Still seeing 00:00... Ensure 'Wi-Fi Scanning' is enabled in Android Settings.");
-        }
-      } else {
-        alert("WiFi Plugin not active.");
+        const bssid = wifiInfo.bssid || "00:00:00:00:00:00";
+        setLastBSSID(bssid);
+        alert(bssid === "00:00:00:00:00:00" ? "Zeros detected. Check GPS lock!" : `BSSID Found: ${bssid}`);
       }
-    } catch (err) {
-      alert("Scan failed: " + err.message);
-    } finally {
-      setIsScanning(false);
-    }
+    } catch (err) { alert("Scan error: " + err.message); }
+    finally { setIsScanning(false); }
   };
 
   const captureFace = async () => {
     if (!webcamRef.current) return;
     setLoading(true);
-    const image = webcamRef.current.getScreenshot();
     try {
+      const image = webcamRef.current.getScreenshot();
       const res = await API.post("/face/recognize", { image });
-      if (res.data.status === "Face recognized") {
-        setStudent(res.data.student);
-      } else {
-        alert(res.data.status || "Face not recognized.");
-      }
-    } catch (err) {
-      alert("Backend connection failed.");
-    } finally {
-      setLoading(false);
-    }
+      if (res.data.status === "Face recognized") { setStudent(res.data.student); }
+    } catch (err) { alert("Face Scan Failed."); }
+    finally { setLoading(false); }
   };
 
   const markAttendance = async () => {
     setMarking(true);
-    let currentBSSID = "00:00:00:00:00:00";
-    let currentRSSI = -100; 
+    // Final check before sending to Railway
+    let bssidToSend = lastBSSID;
+    if (Wifi && bssidToSend === "00:00:00:00:00:00") {
+        const refresh = await Wifi.getIPInfo();
+        bssidToSend = refresh.bssid || "00:00:00:00:00:00";
+    }
 
-    try {
-      if (Wifi && typeof Wifi.getIPInfo === 'function') {
-        const wifiInfo = await Wifi.getIPInfo(); 
-        currentBSSID = wifiInfo.bssid || "00:00:00:00:00:00";
-        currentRSSI = wifiInfo.signalLevel || -100; 
-      }
-    } catch (err) { console.warn("Hardware scan skipped."); }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const res = await API.post("/attendance/mark", {
-            student_id: student.id,
-            timetable_id: currentClass.id,
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            bssid: currentBSSID,
-            rssi: currentRSSI 
-          });
-          if (res.data.status === "success") {
-            alert("Attendance marked successfully! ✅");
-            window.location.href = "/student/dashboard";
-          } else {
-            alert(`Verification Failed: ${res.data.message}`);
-          }
-        } catch (err) {
-          alert(err.response?.data?.message || "Server error.");
-        } finally { setMarking(false); }
-      },
-      (error) => {
-        alert("GPS error: Enable Location services.");
-        setMarking(false);
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
-    );
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        const res = await API.post("/attendance/mark", {
+          student_id: student.id,
+          timetable_id: currentClass.id,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          bssid: bssidToSend,
+          rssi: -50
+        });
+        alert(res.data.status === "success" ? "Success! ✅" : `Failed: ${res.data.message}`);
+      } catch (err) { alert("Server error."); }
+      finally { setMarking(false); }
+    }, () => { alert("GPS Lock Failed."); setMarking(false); }, 
+    { enableHighAccuracy: true });
   };
 
   return (
     <div style={containerStyle}>
       <div style={webcamWrapper}>
-        <Webcam
-          ref={webcamRef}
-          audio={false}
-          screenshotFormat="image/jpeg"
-          onUserMedia={() => setCameraReady(true)}
-          style={webcamStyle}
-          videoConstraints={{ facingMode: "user" }}
-          playsInline
-        />
-        {!cameraReady && <div style={loadingOverlay}>Initializing Camera...</div>}
+        <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" onUserMedia={() => setCameraReady(true)} style={webcamStyle} videoConstraints={{ facingMode: "user" }} playsInline />
       </div>
 
-      <div style={{ marginTop: '20px', width: '100%' }}>
+      <div style={{ marginTop: '20px', width: '90%' }}>
         {!student ? (
           <button className="btn-primary" onClick={captureFace} disabled={!cameraReady || loading}>
-            {loading ? "SCANNING FACE..." : "START SCAN"}
+            {loading ? "SCANNING..." : "START SCAN"}
           </button>
         ) : (
           <div style={resultBox}>
-            {/* FLOATING ACTION BUTTON: This ensures it is always on top and visible */}
-            <button 
-              onClick={forceWifiRescan}
-              disabled={isScanning}
-              style={floatingButtonStyle}
-            >
-              {isScanning ? "..." : "🔄 BSSID"}
+            <button onClick={forceWifiRescan} style={floatingButtonStyle}>{isScanning ? "..." : "🔄 BSSID"}</button>
+            <p style={{color: 'white', marginBottom: '10px'}}>Welcome, {student.name}</p>
+            <button className="btn-primary" onClick={confirmed ? markAttendance : () => setConfirmed(true)} disabled={marking || (confirmed && !canFinalize)}>
+              {marking ? "VERIFYING..." : (confirmed ? (canFinalize ? "SUBMIT" : `WAIT ${countdown}s`) : "CONFIRM")}
             </button>
-
-            <p style={welcomeText}>Welcome, <span style={{color: '#4facfe'}}>{student.name}</span></p>
-
-            {!confirmed ? (
-              <button className="btn-primary" style={{ background: '#22c55e', width: '100%' }} onClick={() => setConfirmed(true)}>
-                CONFIRM IDENTITY
-              </button>
-            ) : (
-              <button 
-                className="btn-primary" 
-                style={{ 
-                  background: canFinalize ? '#6366f1' : '#4b5563', 
-                  cursor: canFinalize ? 'pointer' : 'not-allowed',
-                  width: '100%'
-                }} 
-                onClick={markAttendance} 
-                disabled={!canFinalize || marking}
-              >
-                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `WAIT ${countdown}s`)}
-              </button>
-            )}
           </div>
         )}
       </div>
@@ -1038,27 +973,8 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// STYLES
-const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px', minHeight: '100vh', position: 'relative' };
-const webcamWrapper = { position: 'relative', width: '90%', borderRadius: '16px', overflow: 'hidden', background: '#000', aspectRatio: '4/3' };
-const webcamStyle = { width: '100%', height: '100%', objectFit: 'cover' };
-const loadingOverlay = { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#4facfe', background: '#020617' };
-const resultBox = { padding: '20px', background: 'rgba(255,255,255,0.05)', borderRadius: '16px', width: '90%', position: 'relative' };
-const welcomeText = { fontSize: '1.2rem', marginBottom: '15px', color: 'white' };
-
-// NEW: Floating button style - ignores layout and sits in the top right corner of the box
-const floatingButtonStyle = {
-  position: 'absolute',
-  top: '-15px',
-  right: '10px',
-  background: '#f59e0b',
-  color: '#000',
-  padding: '8px 12px',
-  borderRadius: '20px',
-  fontSize: '12px',
-  fontWeight: 'bold',
-  border: '2px solid #000',
-  zIndex: 100,
-  boxShadow: '0 4px 10px rgba(0,0,0,0.3)',
-  cursor: 'pointer'
-};
+const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#0f172a', padding: '20px' };
+const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6' };
+const webcamStyle = { width: '100%', height: 'auto' };
+const resultBox = { padding: '20px', background: '#1e293b', borderRadius: '15px', position: 'relative', textAlign: 'center' };
+const floatingButtonStyle = { position: 'absolute', top: '-20px', right: '10px', background: '#f59e0b', color: 'black', padding: '10px', borderRadius: '50px', border: 'none', fontWeight: 'bold', zIndex: 100 };
