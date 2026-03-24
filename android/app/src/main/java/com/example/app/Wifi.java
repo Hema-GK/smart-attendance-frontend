@@ -11,8 +11,7 @@ import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
 
 @CapacitorPlugin(
-        name = "Wifi",
-
+        name = "WiFiHardware",
         permissions = {
                 @Permission(
                         alias = "location",
@@ -21,17 +20,17 @@ import com.getcapacitor.annotation.PermissionCallback;
         }
 )
 public class Wifi extends Plugin {
-    private com.example.app.WifiService wifiService;
+    private WifiService wifiService;
 
     @Override
     public void load() {
         super.load();
-        this.wifiService = new com.example.app.WifiService();
+        this.wifiService = new WifiService();
         this.wifiService.load(this.bridge);
     }
 
-    @PluginMethod()
-    public void getBSSID(PluginCall call) {
+    @PluginMethod
+    public void getRealBSSID(PluginCall call) {
         if (getPermissionState("location") != PermissionState.GRANTED) {
             requestPermissionForAlias("location", call, "locationCallback");
         } else {
@@ -39,46 +38,12 @@ public class Wifi extends Plugin {
         }
     }
 
-    @PluginMethod()
-    public void scan(PluginCall call) {
-        if (getPermissionState("location") != PermissionState.GRANTED) {
-            requestPermissionForAlias("location", call, "locationCallback");
-        } else {
-            this.wifiService.scanNetwork(call);
-        }
-    }
-
-    @PluginMethod()
-    public void getWifiIP(PluginCall call) {
-        // IP doesn't strictly require location on all versions, but we route it through service
-        this.wifiService.getWifiIP(call);
-    }
-
-    @PluginMethod()
-    public void getConnectedSSID(PluginCall call) {
-        if (getPermissionState("location") != PermissionState.GRANTED) {
-            requestPermissionForAlias("location", call, "locationCallback");
-        } else {
-            this.wifiService.getConnectedSSID(call);
-        }
-    }
-
     @PermissionCallback
     private void locationCallback(PluginCall call) {
         if (getPermissionState("location") == PermissionState.GRANTED) {
-            String methodName = call.getMethodName();
-
-            // This logic ensures that once the user clicks "Allow",
-            // the app immediately finishes the task they started.
-            if (methodName.equals("getBSSID")) {
-                this.wifiService.getBSSID(call);
-            } else if (methodName.equals("scan")) {
-                this.wifiService.scanNetwork(call);
-            } else if (methodName.equals("getConnectedSSID")) {
-                this.wifiService.getConnectedSSID(call);
-            }
+            this.wifiService.getBSSID(call);
         } else {
-            call.reject("User denied location permission");
+            call.reject("Location permission is required to verify Wi-Fi hardware.");
         }
     }
 }

@@ -1,22 +1,10 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
 import { registerPlugin } from '@capacitor/core';
 
-
+// Register the native plugin we built in Java
 const WiFiHardware = registerPlugin('WiFiHardware');
-
-
-
-let Wifi = null;
-if (typeof window !== "undefined") {
-  // Dynamic import to handle Capacitor plugins in a web/mobile hybrid environment
-  import('capacitor-wifi').then(mod => { 
-    Wifi = mod.Wifi; 
-  }).catch(() => {
-    console.warn("Wifi plugin not available on this platform.");
-  });
-}
 
 export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null);
@@ -31,15 +19,13 @@ export default function FaceCapture({ currentClass }) {
 
   /**
    * Proactive Hardware Probe:
-   * Forces the Wifi chip to report its current BSSID.
+   * Uses our custom WiFiHardware plugin to get the real BSSID.
    */
   const triggerHardwareScan = async () => {
-    if (!Wifi) return false;
     try {
-      const info = await Wifi.getIPInfo();
-      // If we get a real ID, update the state
-      if (info.bssid && info.bssid !== "00:00:00:00:00:00") {
-        setLastBSSID(info.bssid.toLowerCase()); // Always lowercase for DB matching
+      const result = await WiFiHardware.getRealBSSID();
+      if (result.bssid && result.bssid !== "00:00:00:00:00:00") {
+        setLastBSSID(result.bssid.toLowerCase()); 
         return true;
       }
     } catch (e) {
@@ -81,21 +67,18 @@ export default function FaceCapture({ currentClass }) {
       setLoading(false); 
     }
   };
-const Wifi = registerPlugin('Wifi');
 
-const markAttendance = async () => {
+  const markAttendance = async () => {
     setMarking(true);
-    let finalBSSID = "00:00:00:00:00:00";
-    const result = await WiFiHardware.getRealBSSID();
-    console.log("Real BSSID is: ", result.bssid);
+    let finalBSSID = lastBSSID;
 
     try {
-        // CALL THE NEW METHOD WE JUST CREATED
-        const result = await Wifi.getBSSID();
+        // One final hardware check before submission
+        const result = await WiFiHardware.getRealBSSID();
         finalBSSID = result.bssid;
+        console.log("Submitting with Real BSSID: ", finalBSSID);
     } catch (e) {
-        console.error("Hardware BSSID blocked:", e);
-        // Do NOT set it to 'wifi_verified_hardware' here!
+        console.error("Hardware BSSID blocked at submission:", e);
     }
 
     navigator.geolocation.getCurrentPosition(async (pos) => {
@@ -115,12 +98,16 @@ const markAttendance = async () => {
                 alert(`Failed: ${res.data.message}\nDetected: ${finalBSSID}`);
             }
         } catch (err) {
-            alert("Network Error");
+            alert("Network Error: Could not connect to Railway server.");
         } finally {
             setMarking(false);
         }
-    }, (err) => alert("GPS Error"), { enableHighAccuracy: true });
-};
+    }, (err) => {
+        alert("GPS Error: Please enable location services.");
+        setMarking(false);
+    }, { enableHighAccuracy: true });
+  };
+
   return (
     <div style={containerStyle}>
       <div style={webcamWrapper}>
@@ -165,7 +152,7 @@ const markAttendance = async () => {
               <button 
                 className="btn-primary" 
                 style={{ 
-                  background: canFinalize ? '#6366f1' : '#4b5563',
+                  background: (canFinalize && !marking) ? '#6366f1' : '#4b5563',
                   marginTop: '15px'
                 }} 
                 onClick={markAttendance} 
@@ -181,7 +168,7 @@ const markAttendance = async () => {
   );
 }
 
-// STYLES
+// STYLES (Keep as you had them)
 const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#0f172a', padding: '20px' };
 const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' };
 const webcamStyle = { width: '100%', height: 'auto', display: 'block' };

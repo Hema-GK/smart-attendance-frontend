@@ -1,21 +1,9 @@
 {
   "appId": "com.example.app",
-  "appName": "SmartAttendance",
+  "appName": "Netflix_Clone",
   "webDir": "dist",
+  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https",
-    "cleartext": true,
-    "allowMixedContent": true
-  },
-  "android": {
-    "allowMixedContent": true,
-    "buildOptions": {
-      "releaseType": "APK"
-    }
-  },
-  "plugins": {
-    "CapacitorGeolocation": {
-      "forceShowStatus": true
-    }
+    "androidScheme": "https"
   }
 }
