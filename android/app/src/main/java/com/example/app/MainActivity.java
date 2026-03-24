@@ -1,49 +1,31 @@
-package com.example.app;
+package io.ionic.starter; // Ensure this matches your package name in capacitor.config.json
 
-import android.Manifest;
+import android.content.Context;
+import android.net.wifi.WifiInfo;
+import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.webkit.GeolocationPermissions;
-import android.webkit.PermissionRequest;
-import android.webkit.WebChromeClient;
-import android.webkit.WebSettings;
-import androidx.core.app.ActivityCompat;
 import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+    }
 
-        // 1. SYSTEM PERMISSION REQUEST (The "Wake Up" Call)
-        // Android 10+ will return 00:00:00:00:00:00 if these aren't granted at the OS level.
-        ActivityCompat.requestPermissions(this, new String[]{
-                Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.CHANGE_WIFI_STATE
-        }, 1);
-
-        // 2. WEBVIEW SETTINGS
-        WebSettings settings = this.bridge.getWebView().getSettings();
-        settings.setGeolocationEnabled(true);
-        settings.setJavaScriptEnabled(true);
-        settings.setDomStorageEnabled(true); // Added to support modern web storage
-
-        // 3. WEBCHROME CLIENT
-        this.bridge.getWebView().setWebChromeClient(new WebChromeClient() {
-
-            // Automatically grants Camera and Microphone access for Face Recognition
-            @Override
-            public void onPermissionRequest(final PermissionRequest request) {
-                request.grant(request.getResources());
+    /**
+     * This method retrieves the actual BSSID from the Android System.
+     * Note: Returns "02:00:00:00:00:00" or null if Permissions/GPS are off.
+     */
+    public String getRealBSSID() {
+        try {
+            WifiManager wifiManager = (WifiManager) getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            WifiInfo info = wifiManager.getConnectionInfo();
+            if (info != null && info.getBSSID() != null) {
+                return info.getBSSID(); // This returns the actual MAC address
             }
-
-            // Automatically handles the Geolocation bridge between WebView and Android GPS
-            @Override
-            public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                // Parameters: origin, allow (true), retain (false ensures a fresh check each time)
-                callback.invoke(origin, true, false);
-            }
-        });
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return "00:00:00:00:00:00";
     }
 }
