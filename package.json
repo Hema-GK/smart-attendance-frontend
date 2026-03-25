@@ -13,6 +13,7 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
+    "@capacitor/geolocation": "^8.1.0",
     "@capacitor/network": "^8.0.1",
     "axios": "^1.13.5",
     "capacitor-native-settings": "^8.1.0",
