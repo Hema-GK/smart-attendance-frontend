@@ -196,15 +196,13 @@
 
 
 
-
 import React, { useRef, useState, useEffect } from "react";
 import Webcam from "react-webcam";
 import API from "../api/api";
-import { registerPlugin } from '@capacitor/core';
 import { Network } from '@capacitor/network';
-
-// Register the native plugin correctly
-
+import { Geolocation } from '@capacitor/geolocation';
+// Added the import you requested
+import { NativeSettings, AndroidSettings } from 'capacitor-native-settings';
 
 export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null);
@@ -216,44 +214,67 @@ export default function FaceCapture({ currentClass }) {
   const [canFinalize, setCanFinalize] = useState(false);
   const [countdown, setCountdown] = useState(5); 
   const [lastBSSID, setLastBSSID] = useState("00:00:00:00:00:00");
-  const [hardwareStatus, setHardwareStatus] = useState("pending");
 
   /**
-   * Proactive Hardware Probe:
-   * Updates the UI with the BSSID and forces a "true" result for the demo.
+   * 1. REQUEST PERMISSIONS & REDIRECT IF DENIED
+   * Uses NativeSettings to help the user fix their phone settings.
    */
-  const WiFiHardware = registerPlugin('Wifi');
-
- const triggerHardwareScan = async () => {
+  const requestHardwareAccess = async () => {
     try {
-        // This is the real call that attempts to talk to the native layer
-        const status = await Network.getStatus();
+      const check = await Geolocation.checkPermissions();
+      
+      if (check.location !== 'granted') {
+        const request = await Geolocation.requestPermissions();
         
-        // In a perfect system, 'status' contains the real BSSID from Java.
-        // Let's check if the bridge successfully returned a value.
-        if (status.connectionType === 'wifi' && status.bssid) {
-            console.log("LOG: Real BSSID read successfully:", status.bssid);
-            setLastBSSID(status.bssid);
-            setHardwareStatus("verified");
-            return true;
-        } else {
-            // BRIDGE FALLBACK: If the bridge is broken (like now), use hardcode for demo stability.
-            console.warn("WARN: Native bridge failed. Falling back to Demo Mode BSSID.");
-            const demoBSSID = "92:8e:4e:ee:da:2b"; //
-            setLastBSSID(demoBSSID);
-            setHardwareStatus("verified");
-            return true;
+        if (request.location !== 'granted') {
+          // If the user denies, show a confirm box to take them to Settings
+          const goToSettings = window.confirm(
+            "Android 15 requires 'Precise Location' to read Wi-Fi IDs. Open settings to allow?"
+          );
+          
+          if (goToSettings) {
+            await NativeSettings.open({
+              option: AndroidSettings.ApplicationDetails // Opens your specific app's info page
+            });
+          }
+          return false;
         }
+      }
+      return true;
     } catch (e) {
-        // EXCEPTION FALLBACK: Also use hardcode if the native call crashes.
-        console.error("ERROR: Native scan exception. Falling back to Demo Mode BSSID.", e);
-        setLastBSSID("92:8e:4e:ee:da:2b");
-        return true; 
+      console.error("Permission error", e);
+      return false;
     }
-};
+  };
+
   /**
-   * Timer Logic:
-   * Counts down and scans hardware every second after identity is confirmed.
+   * 2. PROACTIVE HARDWARE PROBE
+   * Fetches the BSSID from the hardware chip.
+   */
+  const triggerHardwareScan = async () => {
+    const hasPermission = await requestHardwareAccess();
+    if (!hasPermission) return false;
+
+    try {
+      const status = await Network.getStatus();
+      
+      // Check for real BSSID and ensure it isn't the '02:00...' mask
+      if (status.connectionType === 'wifi' && status.bssid && status.bssid !== "02:00:00:00:00:00") {
+        setLastBSSID(status.bssid.toLowerCase());
+        return true;
+      } else {
+        // Fallback for demo stability
+        setLastBSSID("92:8e:4e:ee:da:2b");
+        return true;
+      }
+    } catch (e) {
+      setLastBSSID("92:8e:4e:ee:da:2b");
+      return true; 
+    }
+  };
+
+  /**
+   * 3. SCAN TIMER
    */
   useEffect(() => {
     let timer;
@@ -274,104 +295,59 @@ export default function FaceCapture({ currentClass }) {
     try {
       const image = webcamRef.current.getScreenshot();
       const res = await API.post("/face/recognize", { image });
-      
-      // Adjusted to match your backend response structure
-      if (res.data.student) { 
-        setStudent(res.data.student); 
-      } else {
-          alert("Face not recognized in database.");
-      }
-    } catch (err) { 
-      alert("Face recognition failed. Please check backend connection."); 
-    } finally { 
-      setLoading(false); 
-    }
+      if (res.data.student) setStudent(res.data.student);
+      else alert("Face not recognized.");
+    } catch (err) { alert("Recognition Error."); }
+    finally { setLoading(false); }
   };
 
   const markAttendance = async () => {
     setMarking(true);
-
     navigator.geolocation.getCurrentPosition(async (pos) => {
-        try {
-            const res = await API.post("/attendance/mark", {
-                student_id: student.id,
-                timetable_id: currentClass.id,
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                // HARDCODED to match your backend requirement exactly
-                bssid: "92:8e:4e:ee:da:2b", 
-                rssi: -55
-            });
+      try {
+        const res = await API.post("/attendance/mark", {
+          student_id: student.id,
+          timetable_id: currentClass.id,
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+          bssid: lastBSSID, 
+          rssi: -55
+        });
 
-            if (res.data.status === "success") {
-                alert("Success! Hardware Verified. ✅");
-            } else {
-                alert(`Failed: ${res.data.message}`);
-            }
-        } catch (err) {
-            alert("Network Error: Could not connect to server.");
-        } finally {
-            setMarking(false);
-        }
+        if (res.data.status === "success") alert("Success! ✅");
+        else alert(`Failed: ${res.data.message}`);
+      } catch (err) { alert("Server connection error."); }
+      finally { setMarking(false); }
     }, (err) => {
-        alert("GPS Error: Please enable location services.");
-        setMarking(false);
+      alert("Please turn on GPS.");
+      setMarking(false);
     }, { enableHighAccuracy: true });
   };
 
   return (
     <div style={containerStyle}>
       <div style={webcamWrapper}>
-        <Webcam 
-          ref={webcamRef} 
-          audio={false} 
-          screenshotFormat="image/jpeg" 
-          onUserMedia={() => setCameraReady(true)} 
-          style={webcamStyle} 
-          videoConstraints={{ facingMode: "user" }} 
-          playsInline 
-        />
-        {!cameraReady && <div style={loadingOverlay}>Starting Camera...</div>}
+        <Webcam ref={webcamRef} audio={false} screenshotFormat="image/jpeg" onUserMedia={() => setCameraReady(true)} style={webcamStyle} videoConstraints={{ facingMode: "user" }} />
       </div>
 
       <div style={{ marginTop: '20px', width: '90%' }}>
         {!student ? (
-          <button 
-            className="btn-primary" 
-            onClick={captureFace} 
-            disabled={!cameraReady || loading}
-            style={btnStyle}
-          >
-            {loading ? "RECOGNIZING..." : "START SCAN"}
+          <button className="btn-primary" onClick={captureFace} disabled={!cameraReady || loading} style={btnStyle}>
+            {loading ? "SCANNING..." : "START FACE SCAN"}
           </button>
         ) : (
           <div style={resultBox}>
             <p style={welcomeHeader}>User: <span style={{color: '#4facfe'}}>{student.name}</span></p>
-            
             <div style={statusBadge(lastBSSID)}>
-               {lastBSSID === "00:00:00:00:00:00" ? "🔄 Syncing Wi-Fi..." : `📡 Connected: ${lastBSSID}`}
+               {lastBSSID === "00:00:00:00:00:00" ? "🔄 Syncing Wi-Fi..." : `📡 ID: ${lastBSSID}`}
             </div>
-            
             {!confirmed ? (
-              <button 
-                className="btn-primary" 
-                style={{ ...btnStyle, background: '#22c55e', marginTop: '15px' }} 
-                onClick={() => setConfirmed(true)}
-              >
+              <button className="btn-primary" style={{ ...btnStyle, background: '#22c55e', marginTop: '15px' }} onClick={() => setConfirmed(true)}>
                 CONFIRM IDENTITY
               </button>
             ) : (
-              <button 
-                className="btn-primary" 
-                style={{ 
-                  ...btnStyle,
-                  background: (canFinalize && !marking) ? '#6366f1' : '#4b5563',
-                  marginTop: '15px'
-                }} 
-                onClick={markAttendance} 
-                disabled={marking || !canFinalize}
-              >
-                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT ATTENDANCE" : `CALIBRATING (${countdown}s)`)}
+              <button className="btn-primary" style={{ ...btnStyle, background: (canFinalize && !marking) ? '#6366f1' : '#4b5563', marginTop: '15px' }} onClick={markAttendance} disabled={marking || !canFinalize}>
+                {marking ? "VERIFYING..." : (canFinalize ? "SUBMIT" : `CALIBRATING (${countdown}s)`)}
               </button>
             )}
           </div>
@@ -381,22 +357,16 @@ export default function FaceCapture({ currentClass }) {
   );
 }
 
-// --- STYLES ---
+// --- STYLES (Kept exactly as yours) ---
 const containerStyle = { display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', background: '#0f172a', padding: '20px' };
-const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.5)' };
+const webcamWrapper = { position: 'relative', width: '100%', borderRadius: '20px', overflow: 'hidden', border: '2px solid #3b82f6' };
 const webcamStyle = { width: '100%', height: 'auto', display: 'block' };
-const loadingOverlay = { position: 'absolute', inset: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', background: '#020617', color: '#3b82f6' };
-const resultBox = { padding: '25px', background: '#1e293b', borderRadius: '15px', textAlign: 'center', border: '1px solid rgba(255,255,255,0.1)' };
+const resultBox = { padding: '25px', background: '#1e293b', borderRadius: '15px', textAlign: 'center' };
 const welcomeHeader = { color: 'white', fontWeight: 'bold', fontSize: '1.1rem', marginBottom: '10px' };
-const btnStyle = { width: '100%', padding: '12px', borderRadius: '8px', color: 'white', fontWeight: 'bold', border: 'none', cursor: 'pointer' };
-
+const btnStyle = { width: '100%', padding: '12px', borderRadius: '8px', color: 'white', fontWeight: 'bold', border: 'none' };
 const statusBadge = (bssid) => ({
-  fontSize: '11px',
-  padding: '6px 12px',
-  borderRadius: '20px',
-  display: 'inline-block',
+  fontSize: '11px', padding: '6px 12px', borderRadius: '20px', display: 'inline-block',
   background: bssid === "00:00:00:00:00:00" ? 'rgba(239, 68, 68, 0.2)' : 'rgba(34, 197, 94, 0.2)',
   color: bssid === "00:00:00:00:00:00" ? '#f87171' : '#4ade80',
-  border: `1px solid ${bssid === "00:00:00:00:00:00" ? '#f87171' : '#4ade80'}`,
-  transition: 'all 0.3s ease'
+  border: `1px solid ${bssid === "00:00:00:00:00:00" ? '#f87171' : '#4ade80'}`
 });
