@@ -4,7 +4,7 @@ import API from "../api/api";
 import { registerPlugin } from '@capacitor/core';
 
 // Register the native plugin correctly
-const WiFiHardware = registerPlugin('WiFiHardware');
+
 
 export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null);
@@ -22,6 +22,8 @@ export default function FaceCapture({ currentClass }) {
    * Proactive Hardware Probe:
    * Updates the UI with the BSSID and forces a "true" result for the demo.
    */
+  const WiFiHardware = registerPlugin('Wifi');
+
   const triggerHardwareScan = async () => {
     try {
         // Try the real hardware first
