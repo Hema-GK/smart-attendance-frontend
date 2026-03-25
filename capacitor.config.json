@@ -1,6 +1,6 @@
 {
   "appId": "com.example.app",
-  "appName": "Netflix_Clone",
+  "appName": "Smart_Attendance",
   "webDir": "dist",
   "bundledWebRuntime": false,
   "server": {
