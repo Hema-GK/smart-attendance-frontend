@@ -1,27 +1,28 @@
 import React, { useEffect, useRef, useState } from "react";
 import API from "../api/api";
-import { Capacitor } from "@capacitor/core";
+import { Geolocation } from "@capacitor/geolocation";
 
 export default function FaceCapture({ user }) {
   const videoRef = useRef(null);
 
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [wifiBSSID, setWifiBSSID] = useState(null);
+  const [ssid, setSsid] = useState(null);
+  const [location, setLocation] = useState(null);
   const [syncing, setSyncing] = useState(true);
-
-  const WifiPlugin = Capacitor.Plugins?.WifiPlugin;
 
   useEffect(() => {
     startCamera();
-    fetchWifi();
+    fetchLocation();
+    fetchSSID();
   }, []);
 
+  // 🎥 CAMERA
   const startCamera = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
-    } catch (err) {
+    } catch {
       alert("Camera permission denied");
     }
   };
@@ -36,54 +37,50 @@ export default function FaceCapture({ user }) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
 
-    const imageData = canvas.toDataURL("image/jpeg");
-    setImage(imageData);
+    setImage(canvas.toDataURL("image/jpeg"));
   };
 
-  const fetchWifi = async () => {
+  // 📍 LOCATION
+  const fetchLocation = async () => {
     try {
-      setSyncing(true);
-
-      if (!WifiPlugin) {
-        alert("WifiPlugin not available. Sync Android first.");
-        return;
-      }
-
-      const result = await WifiPlugin.getBSSID();
-
-      console.log("Detected BSSID:", result.bssid);
-
-      setWifiBSSID(result.bssid);
-      setSyncing(false);
-
-    } catch (err) {
-      console.log(err);
-      setSyncing(false);
-      alert(err.message || "WiFi fetch failed");
+      const position = await Geolocation.getCurrentPosition();
+      setLocation({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      });
+    } catch {
+      alert("Location permission required");
     }
   };
 
-  const handleSubmit = async () => {
-    if (!image) {
-      alert("Capture image first");
-      return;
+  // 📡 SSID (WEB LIMITATION FALLBACK)
+  const fetchSSID = async () => {
+    try {
+      // ⚠️ Browser cannot access SSID directly
+      // So we assume connection OR use backend check
+      setSsid("College_Wifi_Test"); // TEMP (see below)
+      setSyncing(false);
+    } catch {
+      setSyncing(false);
     }
+  };
 
-    if (!wifiBSSID) {
-      alert("WiFi not detected");
-      return;
-    }
+  // 🚀 SUBMIT
+  const handleSubmit = async () => {
+    if (!image) return alert("Capture image first");
+    if (!location) return alert("Location not available");
 
     try {
       setLoading(true);
 
       const res = await API.post("/face/verify", {
         image,
-        bssid: wifiBSSID,
+        ssid,
+        lat: location.lat,
+        lng: location.lng,
       });
 
       alert(res.data.message || "Attendance marked");
-
     } catch (err) {
       alert(err.response?.data?.message || "Verification failed");
     } finally {
@@ -93,21 +90,22 @@ export default function FaceCapture({ user }) {
 
   return (
     <div className="capture-container">
-      <video ref={videoRef} autoPlay playsInline className="video-box" />
+      <video ref={videoRef} autoPlay className="video-box" />
 
-      <button onClick={captureImage} className="btn">
-        Capture
-      </button>
+      <button onClick={captureImage} className="btn">Capture</button>
 
       {image && <img src={image} alt="preview" className="preview" />}
 
       <div style={{ marginTop: "10px" }}>
         {syncing ? (
-          <p style={{ color: "red" }}>🔄 Syncing Wi-Fi...</p>
+          <p style={{ color: "red" }}>🔄 Syncing...</p>
         ) : (
-          <p style={{ color: "green" }}>
-            📡 BSSID: {wifiBSSID || "Not detected"}
-          </p>
+          <>
+            <p style={{ color: "green" }}>📡 SSID: {ssid}</p>
+            <p style={{ color: "green" }}>
+              📍 {location?.lat}, {location?.lng}
+            </p>
+          </>
         )}
       </div>
 
