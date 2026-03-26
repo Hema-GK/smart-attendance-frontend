@@ -9,7 +9,7 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // ✅ Register your plugin here
-        registerPlugin(WifiPlugin.class);
+        // 🔥 Register BLE plugin
+        registerPlugin(BLEPlugin.class);
     }
 }

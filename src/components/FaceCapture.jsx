@@ -3,22 +3,25 @@ import API from "../api/api";
 import { Geolocation } from "@capacitor/geolocation";
 import { registerPlugin } from "@capacitor/core";
 
-const WifiPlugin = registerPlugin("WifiPlugin");
+const BlePlugin = registerPlugin("BlePlugin");
 
 export default function FaceCapture({ user }) {
+
   const videoRef = useRef(null);
 
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [ssid, setSsid] = useState(null);
+
   const [location, setLocation] = useState(null);
-  const [syncing, setSyncing] = useState(true);
+  const [beaconUUID, setBeaconUUID] = useState(null);
   const [rssi, setRssi] = useState(null);
+
+  const [syncing, setSyncing] = useState(true);
 
   useEffect(() => {
     startCamera();
     fetchLocation();
-    fetchSSID();
+    fetchBeacon();
   }, []);
 
   // 🎥 CAMERA
@@ -48,82 +51,90 @@ export default function FaceCapture({ user }) {
   const fetchLocation = async () => {
     try {
       const position = await Geolocation.getCurrentPosition();
+
       setLocation({
         lat: position.coords.latitude,
         lng: position.coords.longitude,
       });
+
     } catch {
       alert("Location permission required");
     }
   };
 
-  // 📡 SSID FROM NATIVE
-  const fetchSSID = async () => {
-  try {
-    const res = await WifiPlugin.getWifiInfo();
+  // 📡 BLE SCAN
+  const fetchBeacon = async () => {
+    try {
+      const res = await BlePlugin.startScan();
 
-    console.log("WiFi Info:", res);
+      setBeaconUUID(res.uuid);
+      setRssi(res.rssi);
 
-    setSsid(res.ssid);
-    setRssi(res.rssi); // 🔥 NEW
-    setSyncing(false);
-  } catch (err) {
-    console.log("WiFi error:", err);
-    setSsid("UNKNOWN");
-    setRssi(-100);
-    setSyncing(false);
-  }
-};
+      setSyncing(false);
+
+      console.log("UUID:", res.uuid);
+      console.log("RSSI:", res.rssi);
+
+    } catch (err) {
+      console.log("Beacon error:", err);
+      setSyncing(false);
+    }
+  };
 
   // 🚀 SUBMIT
- const handleSubmit = async () => {
-  if (!image) return alert("Capture image first");
-  if (!location) return alert("Location not available");
-  if (!ssid) return alert("WiFi not detected");
+  const handleSubmit = async () => {
 
-  try {
-    setLoading(true);
+    if (!image) return alert("Capture image first");
+    if (!location) return alert("Location not available");
+    if (!beaconUUID) return alert("Beacon not detected");
 
-    const res = await API.post("/attendance/mark", {
-      student_id: user.id,
-      timetable_id: 1, // later you can make this dynamic
-      image,
-      ssid,
-      rssi, // ✅ THIS IS YOUR NEW FIELD
-      latitude: location.lat,
-      longitude: location.lng,
-    });
-    console.log({
-  ssid,
-  rssi,
-  location
-});
+    try {
+      setLoading(true);
 
-    alert(res.data.message || "Attendance marked");
-  } catch (err) {
-    alert(err.response?.data?.message || "Verification failed");
-  } finally {
-    setLoading(false);
-  }
-};
+      const res = await API.post("/attendance/mark", {
+        student_id: user.id,
+        timetable_id: 1, // 🔥 change dynamically later
+        latitude: location.lat,
+        longitude: location.lng,
+        beacon_uuid: beaconUUID,
+        rssi: rssi
+      });
+
+      alert(res.data.message);
+
+    } catch (err) {
+      alert(err.response?.data?.message || "Verification failed");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="capture-container">
+
       <video ref={videoRef} autoPlay className="video-box" />
 
       <button onClick={captureImage} className="btn">
         Capture
       </button>
 
-      {image && <img src={image} alt="preview" className="preview" />}
+      {image && (
+        <img src={image} alt="preview" className="preview" />
+      )}
 
       <div style={{ marginTop: "10px" }}>
         {syncing ? (
-          <p style={{ color: "orange" }}>🔄 Syncing Wi-Fi...</p>
+          <p style={{ color: "red" }}>🔄 Syncing beacon...</p>
         ) : (
           <>
-            <p style={{ color: "green" }}>📡 SSID: {ssid}</p>
-            <p style={{ color: "green" }}>📶 RSSI: {rssi} dBm</p>
+            <p style={{ color: "green" }}>
+              📡 UUID: {beaconUUID || "Not detected"}
+            </p>
+
+            <p style={{ color: "green" }}>
+              📶 RSSI: {rssi || "N/A"} dBm
+            </p>
+
             <p style={{ color: "green" }}>
               📍 {location?.lat}, {location?.lng}
             </p>
@@ -131,9 +142,14 @@ export default function FaceCapture({ user }) {
         )}
       </div>
 
-      <button onClick={handleSubmit} disabled={loading} className="submit-btn">
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="submit-btn"
+      >
         {loading ? "VERIFYING..." : "SUBMIT"}
       </button>
+
     </div>
   );
 }

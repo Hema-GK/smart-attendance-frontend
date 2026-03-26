@@ -5,43 +5,26 @@
 
     <!-- 🌐 Network -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
-    <!-- 📶 WiFi -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-
-    <!-- 📍 Location (REQUIRED for BSSID) -->
+    <!-- 📍 Location (Required for BLE) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- 📡 BLE Permissions -->
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- 📸 Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- 🎤 Audio (only if needed) -->
-    <uses-permission android:name="android.permission.RECORD_AUDIO" />
-
-    <!-- 📡 Android 13+ (optional but safe) -->
-    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES"
-        android:usesPermissionFlags="neverForLocation" />
-
-    <!-- 📷 Camera features -->
-    <uses-feature android:name="android.hardware.camera" android:required="true" />
-    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-
     <application
         android:allowBackup="true"
-        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
-        android:supportsRtl="true"
-        android:theme="@style/AppTheme"
-        android:usesCleartextTraffic="true">
+        android:theme="@style/AppTheme">
 
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/AppTheme.NoActionBarLaunch"
-            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode">
+            android:exported="true">
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -51,5 +34,4 @@
         </activity>
 
     </application>
-
 </manifest>
