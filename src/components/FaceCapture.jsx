@@ -63,24 +63,26 @@ export default function FaceCapture({ user }) {
   // 📍 LOCATION
 const fetchLocation = async () => {
   try {
-    let latSum = 0;
-    let lonSum = 0;
+    let readings = [];
 
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 5; i++) {
       const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true, timeout:10000, maximumAge:0
+        enableHighAccuracy: true
       });
 
-      latSum += pos.coords.latitude;
-      lonSum += pos.coords.longitude;
+      readings.push({
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude
+      });
 
-      await new Promise(r => setTimeout(r, 1000)); // wait 1 sec
+      await new Promise(r => setTimeout(r, 1000));
     }
 
-    setLocation({
-      lat: latSum / 3,
-      lng: lonSum / 3
-    });
+    // average
+    const avgLat = readings.reduce((a, b) => a + b.lat, 0) / readings.length;
+    const avgLon = readings.reduce((a, b) => a + b.lon, 0) / readings.length;
+
+    setLocation({ lat: avgLat, lng: avgLon });
 
   } catch {
     alert("Location permission required");
