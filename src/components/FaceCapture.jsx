@@ -1,9 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import API from "../api/api";
 import { Geolocation } from "@capacitor/geolocation";
-import { registerPlugin } from "@capacitor/core";
-
-const BlePlugin = registerPlugin("BlePlugin");
 
 export default function FaceCapture({ user }) {
 
@@ -11,17 +8,11 @@ export default function FaceCapture({ user }) {
 
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
-
   const [location, setLocation] = useState(null);
-  const [beaconUUID, setBeaconUUID] = useState(null);
-  const [rssi, setRssi] = useState(null);
-
-  const [syncing, setSyncing] = useState(true);
 
   useEffect(() => {
     startCamera();
     fetchLocation();
-    fetchBeacon();
   }, []);
 
   // 🎥 CAMERA
@@ -50,7 +41,9 @@ export default function FaceCapture({ user }) {
   // 📍 LOCATION
   const fetchLocation = async () => {
     try {
-      const position = await Geolocation.getCurrentPosition();
+      const position = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true
+      });
 
       setLocation({
         lat: position.coords.latitude,
@@ -62,26 +55,11 @@ export default function FaceCapture({ user }) {
     }
   };
 
-  // 📡 BLE SCAN
-  const fetchBeacon = async () => {
-  try {
-    const res = await BlePlugin.startScan();
-
-    setRssi(res.rssi);
-    setSyncing(false);
-
-  } catch (err) {
-    console.log("BLE error:", err);
-    setSyncing(false);
-  }
-};
-
   // 🚀 SUBMIT
   const handleSubmit = async () => {
 
     if (!image) return alert("Capture image first");
     if (!location) return alert("Location not available");
-    if (!beaconUUID) return alert("Beacon not detected");
 
     try {
       setLoading(true);
@@ -90,9 +68,7 @@ export default function FaceCapture({ user }) {
         student_id: user.id,
         timetable_id: 1,
         latitude: location.lat,
-        longitude: location.lng,
-        beacon_uuid: beaconUUID,
-        rssi: rssi
+        longitude: location.lng
       });
 
       alert(res.data.message);
@@ -118,23 +94,9 @@ export default function FaceCapture({ user }) {
       )}
 
       <div style={{ marginTop: "10px" }}>
-        {syncing ? (
-          <p style={{ color: "red" }}>🔄 Syncing beacon...</p>
-        ) : (
-          <>
-            <p style={{ color: "green" }}>
-              📡 UUID: {beaconUUID || "Not detected"}
-            </p>
-
-            <p style={{ color: "green" }}>
-              📶 RSSI: {rssi !== null ? rssi : "N/A"} dBm
-            </p>
-
-            <p style={{ color: "green" }}>
-              📍 {location?.lat}, {location?.lng}
-            </p>
-          </>
-        )}
+        <p style={{ color: "green" }}>
+          📍 {location?.lat}, {location?.lng}
+        </p>
       </div>
 
       <button

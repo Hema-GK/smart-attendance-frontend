@@ -5,18 +5,13 @@
     <!-- 🌐 Internet -->
     <uses-permission android:name="android.permission.INTERNET" />
 
-    <!-- 📍 Location (Required for BLE) -->
+    <!-- 📍 Location (ONLY needed for geofencing) -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-
-    <!-- 📡 BLE (Android 12+) -->
-    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
-    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
     <!-- 📸 Camera -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- ✅ FIX 1: Add camera hardware -->
+    <!-- 📸 Camera hardware (optional) -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
