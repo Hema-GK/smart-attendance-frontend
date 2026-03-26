@@ -29,7 +29,7 @@ export default function FaceCapture({ user }) {
     }
   };
 
-  // 📸 CAPTURE IMAGE
+  // 📸 CAPTURE IMAGE + FACE RECOGNITION
   const captureImage = async () => {
     const canvas = document.createElement("canvas");
     const video = videoRef.current;
@@ -43,7 +43,6 @@ export default function FaceCapture({ user }) {
     const imgData = canvas.toDataURL("image/jpeg");
     setImage(imgData);
 
-    // 🔍 CALL FACE RECOGNITION
     try {
       const res = await API.post("/face/recognize", {
         image: imgData
@@ -51,49 +50,62 @@ export default function FaceCapture({ user }) {
 
       if (res.data.student) {
         setRecognizedStudent(res.data.student);
+        setConfirmed(false);
       } else {
-        alert(res.data.status || "Face not recognized");
+        alert(res.data.message || "Face not recognized");
       }
 
-    } catch (err) {
+    } catch {
       alert("Face recognition failed");
     }
   };
 
-  // 📍 LOCATION
-const fetchLocation = async () => {
-  try {
-    let readings = [];
-
-    for (let i = 0; i < 5; i++) {
+  // 📍 LOCATION FETCH
+  const fetchLocation = async () => {
+    try {
       const pos = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true
+        enableHighAccuracy: true,
+        timeout: 10000
       });
 
-      readings.push({
+      setLocation({
         lat: pos.coords.latitude,
-        lon: pos.coords.longitude
+        lng: pos.coords.longitude,
       });
 
-      await new Promise(r => setTimeout(r, 1000));
+    } catch {
+      console.log("GPS not ready yet");
     }
-
-    // average
-    const avgLat = readings.reduce((a, b) => a + b.lat, 0) / readings.length;
-    const avgLon = readings.reduce((a, b) => a + b.lon, 0) / readings.length;
-
-    setLocation({ lat: avgLat, lng: avgLon });
-
-  } catch {
-    alert("Location permission required");
-  }
-};
+  };
 
   // 🚀 MARK ATTENDANCE
   const handleSubmit = async () => {
 
+    if (!image) return alert("Capture image first");
+
+    // 🔥 ALWAYS ENSURE LOCATION
+    let currentLocation = location;
+
+    if (!currentLocation) {
+      try {
+        const pos = await Geolocation.getCurrentPosition({
+          enableHighAccuracy: true,
+          timeout: 10000
+        });
+
+        currentLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
+
+        setLocation(currentLocation);
+
+      } catch {
+        return alert("Location not available. Please wait and try again.");
+      }
+    }
+
     if (!recognizedStudent) return alert("Face not recognized");
-    if (!location) return alert("Location not available");
 
     try {
       setLoading(true);
@@ -101,8 +113,8 @@ const fetchLocation = async () => {
       const res = await API.post("/attendance/mark", {
         student_id: recognizedStudent.id,
         timetable_id: 1,
-        latitude: location.lat,
-        longitude: location.lng
+        latitude: currentLocation.lat,
+        longitude: currentLocation.lng
       });
 
       alert(res.data.message);
@@ -130,9 +142,17 @@ const fetchLocation = async () => {
       )}
 
       {/* 📍 Location */}
-      <p style={{ color: "green", marginTop: "10px" }}>
-        📍 {location?.lat}, {location?.lng}
-      </p>
+      <div style={{ marginTop: "10px" }}>
+        {location ? (
+          <p style={{ color: "green" }}>
+            📍 {location.lat}, {location.lng}
+          </p>
+        ) : (
+          <p style={{ color: "orange" }}>
+            📍 Getting location...
+          </p>
+        )}
+      </div>
 
       {/* 👤 Student Details */}
       {recognizedStudent && (
