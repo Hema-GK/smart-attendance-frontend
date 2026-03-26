@@ -64,22 +64,17 @@ export default function FaceCapture({ user }) {
 
   // 📡 BLE SCAN
   const fetchBeacon = async () => {
-    try {
-      const res = await BlePlugin.startScan();
+  try {
+    const res = await BlePlugin.startScan();
 
-      console.log("BLE RESPONSE:", res);
+    setRssi(res.rssi);
+    setSyncing(false);
 
-      if (res && res.uuid) {
-        setBeaconUUID(res.uuid);
-        setRssi(res.rssi);
-      }
-
-    } catch (err) {
-      console.log("Beacon error:", err);
-    } finally {
-      setSyncing(false);
-    }
-  };
+  } catch (err) {
+    console.log("BLE error:", err);
+    setSyncing(false);
+  }
+};
 
   // 🚀 SUBMIT
   const handleSubmit = async () => {
