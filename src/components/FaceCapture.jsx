@@ -3,10 +3,9 @@ import Webcam from "react-webcam";
 import API from "../api/api";
 import { Geolocation } from '@capacitor/geolocation';
 import { NativeSettings, AndroidSettings } from 'capacitor-native-settings';
-import { Plugins } from '@capacitor/core';
+import { registerPlugin } from '@capacitor/core';
 
-// ✅ Correct plugin usage
-const { WifiPlugin } = Plugins;
+const WifiPlugin = registerPlugin('WifiPlugin');
 
 export default function FaceCapture({ currentClass }) {
   const webcamRef = useRef(null);
