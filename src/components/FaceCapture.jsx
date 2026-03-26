@@ -74,7 +74,8 @@ export default function FaceCapture({ user }) {
       alert(res.data.message);
 
     } catch (err) {
-      alert(err.response?.data?.message || "Verification failed");
+      console.log("FULL ERROR:", err.response);
+alert(err.response?.data?.message || "Verification failed");
     } finally {
       setLoading(false);
     }
