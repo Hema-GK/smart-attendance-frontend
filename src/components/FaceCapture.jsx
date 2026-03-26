@@ -61,21 +61,31 @@ export default function FaceCapture({ user }) {
   };
 
   // 📍 LOCATION
-  const fetchLocation = async () => {
-    try {
-      const position = await Geolocation.getCurrentPosition({
-        enableHighAccuracy: true
+const fetchLocation = async () => {
+  try {
+    let latSum = 0;
+    let lonSum = 0;
+
+    for (let i = 0; i < 3; i++) {
+      const pos = await Geolocation.getCurrentPosition({
+        enableHighAccuracy: true, timeout:10000, maximumAge:0
       });
 
-      setLocation({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
+      latSum += pos.coords.latitude;
+      lonSum += pos.coords.longitude;
 
-    } catch {
-      alert("Location permission required");
+      await new Promise(r => setTimeout(r, 1000)); // wait 1 sec
     }
-  };
+
+    setLocation({
+      lat: latSum / 3,
+      lng: lonSum / 3
+    });
+
+  } catch {
+    alert("Location permission required");
+  }
+};
 
   // 🚀 MARK ATTENDANCE
   const handleSubmit = async () => {
