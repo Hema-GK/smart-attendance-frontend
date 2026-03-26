@@ -8,13 +8,8 @@ import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.JSObject;
 
-import com.getcapacitor.annotation.CapacitorPlugin;
-import com.getcapacitor.annotation.PluginMethod;
-
-@CapacitorPlugin(name = "WifiPlugin")
 public class WifiPlugin extends Plugin {
 
-    @PluginMethod
     public void getBSSID(PluginCall call) {
         try {
             WifiManager wifiManager = (WifiManager) getContext()
@@ -34,9 +29,9 @@ public class WifiPlugin extends Plugin {
                 bssid = wifiInfo.getBSSID();
             }
 
-            // Android restriction case
+            // Android restriction
             if (bssid.equals("02:00:00:00:00:00")) {
-                call.reject("Location OFF or Android restricted BSSID");
+                call.reject("Location OFF or restricted by Android");
                 return;
             }
 
@@ -46,7 +41,7 @@ public class WifiPlugin extends Plugin {
             call.resolve(ret);
 
         } catch (Exception e) {
-            call.reject("Error getting BSSID: " + e.getMessage());
+            call.reject("Error: " + e.getMessage());
         }
     }
 }

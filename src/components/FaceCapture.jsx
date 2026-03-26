@@ -10,7 +10,6 @@ export default function FaceCapture({ user }) {
   const [wifiBSSID, setWifiBSSID] = useState(null);
   const [syncing, setSyncing] = useState(true);
 
-  // ✅ Access native plugin
   const WifiPlugin = Capacitor.Plugins?.WifiPlugin;
 
   useEffect(() => {
@@ -20,12 +19,10 @@ export default function FaceCapture({ user }) {
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoRef.current.srcObject = stream;
     } catch (err) {
-      alert("Camera access denied");
+      alert("Camera permission denied");
     }
   };
 
@@ -48,20 +45,21 @@ export default function FaceCapture({ user }) {
       setSyncing(true);
 
       if (!WifiPlugin) {
-        alert("WifiPlugin not available. Sync Android properly.");
+        alert("WifiPlugin not available. Sync Android first.");
         return;
       }
 
       const result = await WifiPlugin.getBSSID();
 
-      console.log("BSSID:", result.bssid);
+      console.log("Detected BSSID:", result.bssid);
 
       setWifiBSSID(result.bssid);
       setSyncing(false);
+
     } catch (err) {
       console.log(err);
       setSyncing(false);
-      alert(err.message || "Failed to get WiFi");
+      alert(err.message || "WiFi fetch failed");
     }
   };
 
@@ -85,6 +83,7 @@ export default function FaceCapture({ user }) {
       });
 
       alert(res.data.message || "Attendance marked");
+
     } catch (err) {
       alert(err.response?.data?.message || "Verification failed");
     } finally {
@@ -100,7 +99,7 @@ export default function FaceCapture({ user }) {
         Capture
       </button>
 
-      {image && <img src={image} alt="captured" className="preview" />}
+      {image && <img src={image} alt="preview" className="preview" />}
 
       <div style={{ marginTop: "10px" }}>
         {syncing ? (
