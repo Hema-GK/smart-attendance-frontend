@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import API from "../api/api";
 import { Geolocation } from "@capacitor/geolocation";
+import { registerPlugin } from "@capacitor/core";
+
+const WifiPlugin = registerPlugin("WifiPlugin");
 
 export default function FaceCapture({ user }) {
   const videoRef = useRef(null);
@@ -10,6 +13,7 @@ export default function FaceCapture({ user }) {
   const [ssid, setSsid] = useState(null);
   const [location, setLocation] = useState(null);
   const [syncing, setSyncing] = useState(true);
+  const [rssi, setRssi] = useState(null);
 
   useEffect(() => {
     startCamera();
@@ -53,55 +57,73 @@ export default function FaceCapture({ user }) {
     }
   };
 
-  // 📡 SSID (WEB LIMITATION FALLBACK)
+  // 📡 SSID FROM NATIVE
   const fetchSSID = async () => {
-    try {
-      // ⚠️ Browser cannot access SSID directly
-      // So we assume connection OR use backend check
-      setSsid("College_Wifi_Test"); // TEMP (see below)
-      setSyncing(false);
-    } catch {
-      setSyncing(false);
-    }
-  };
+  try {
+    const res = await WifiPlugin.getWifiInfo();
+
+    console.log("WiFi Info:", res);
+
+    setSsid(res.ssid);
+    setRssi(res.rssi); // 🔥 NEW
+    setSyncing(false);
+  } catch (err) {
+    console.log("WiFi error:", err);
+    setSsid("UNKNOWN");
+    setRssi(-100);
+    setSyncing(false);
+  }
+};
 
   // 🚀 SUBMIT
-  const handleSubmit = async () => {
-    if (!image) return alert("Capture image first");
-    if (!location) return alert("Location not available");
+ const handleSubmit = async () => {
+  if (!image) return alert("Capture image first");
+  if (!location) return alert("Location not available");
+  if (!ssid) return alert("WiFi not detected");
 
-    try {
-      setLoading(true);
+  try {
+    setLoading(true);
 
-      const res = await API.post("/face/verify", {
-        image,
-        ssid,
-        lat: location.lat,
-        lng: location.lng,
-      });
+    const res = await API.post("/attendance/mark", {
+      student_id: user.id,
+      timetable_id: 1, // later you can make this dynamic
+      image,
+      ssid,
+      rssi, // ✅ THIS IS YOUR NEW FIELD
+      latitude: location.lat,
+      longitude: location.lng,
+    });
+    console.log({
+  ssid,
+  rssi,
+  location
+});
 
-      alert(res.data.message || "Attendance marked");
-    } catch (err) {
-      alert(err.response?.data?.message || "Verification failed");
-    } finally {
-      setLoading(false);
-    }
-  };
+    alert(res.data.message || "Attendance marked");
+  } catch (err) {
+    alert(err.response?.data?.message || "Verification failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="capture-container">
       <video ref={videoRef} autoPlay className="video-box" />
 
-      <button onClick={captureImage} className="btn">Capture</button>
+      <button onClick={captureImage} className="btn">
+        Capture
+      </button>
 
       {image && <img src={image} alt="preview" className="preview" />}
 
       <div style={{ marginTop: "10px" }}>
         {syncing ? (
-          <p style={{ color: "red" }}>🔄 Syncing...</p>
+          <p style={{ color: "orange" }}>🔄 Syncing Wi-Fi...</p>
         ) : (
           <>
             <p style={{ color: "green" }}>📡 SSID: {ssid}</p>
+            <p style={{ color: "green" }}>📶 RSSI: {rssi} dBm</p>
             <p style={{ color: "green" }}>
               📍 {location?.lat}, {location?.lng}
             </p>

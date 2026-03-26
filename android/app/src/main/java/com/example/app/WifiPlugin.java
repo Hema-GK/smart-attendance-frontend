@@ -1,42 +1,42 @@
 package com.example.app;
 
+import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
-import android.content.Context;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.JSObject;
+import com.getcapacitor.annotation.CapacitorPlugin;
 
+@CapacitorPlugin(name = "WifiPlugin")
 public class WifiPlugin extends Plugin {
 
-    public void getBSSID(PluginCall call) {
+    public void getWifiInfo(PluginCall call) {
         try {
             WifiManager wifiManager = (WifiManager) getContext()
                     .getApplicationContext()
                     .getSystemService(Context.WIFI_SERVICE);
 
             if (wifiManager == null) {
-                call.reject("WiFi Manager not available");
+                call.reject("WiFi not available");
                 return;
             }
 
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 
-            String bssid = "00:00:00:00:00:00";
-
-            if (wifiInfo != null && wifiInfo.getBSSID() != null) {
-                bssid = wifiInfo.getBSSID();
-            }
-
-            // Android restriction
-            if (bssid.equals("02:00:00:00:00:00")) {
-                call.reject("Location OFF or restricted by Android");
-                return;
-            }
+            String ssid = wifiInfo.getSSID();
+            int rssi = wifiInfo.getRssi(); // 🔥 SIGNAL STRENGTH
 
             JSObject ret = new JSObject();
-            ret.put("bssid", bssid.toLowerCase());
+
+            if (ssid == null || ssid.equals("<unknown ssid>")) {
+                ret.put("ssid", "UNKNOWN");
+            } else {
+                ret.put("ssid", ssid.replace("\"", ""));
+            }
+
+            ret.put("rssi", rssi); // 🔥 ADD RSSI
 
             call.resolve(ret);
 
