@@ -1,39 +1,37 @@
 package com.example.app;
 
-import android.content.Context;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
+import android.content.Context;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
-import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.PluginMethod;
 
-import com.getcapacitor.JSObject;
+import org.json.JSONObject;
 
 @CapacitorPlugin(name = "WifiPlugin")
 public class WifiPlugin extends Plugin {
 
     @PluginMethod
     public void getBSSID(PluginCall call) {
-        JSObject ret = new JSObject();
-
         try {
-            WifiManager wifiManager = (WifiManager) getContext()
-                    .getApplicationContext()
-                    .getSystemService(Context.WIFI_SERVICE);
+            WifiManager wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
 
             if (wifiManager == null) {
-                ret.put("bssid", "UNAVAILABLE");
-                call.resolve(ret);
+                call.reject("WiFi Manager not available");
                 return;
             }
 
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
+
             String bssid = wifiInfo.getBSSID();
 
-            if (bssid == null || bssid.equals("02:00:00:00:00:00")) {
-                ret.put("bssid", "UNAVAILABLE");
+            JSONObject ret = new JSONObject();
+
+            if (bssid == null) {
+                ret.put("bssid", "00:00:00:00:00:00");
             } else {
                 ret.put("bssid", bssid.toLowerCase());
             }
@@ -41,8 +39,7 @@ public class WifiPlugin extends Plugin {
             call.resolve(ret);
 
         } catch (Exception e) {
-            ret.put("bssid", "ERROR");
-            call.resolve(ret);
+            call.reject("Error getting BSSID: " + e.getMessage());
         }
     }
 }
