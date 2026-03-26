@@ -8,7 +8,11 @@ export default function FaceCapture({ user }) {
 
   const [image, setImage] = useState(null);
   const [loading, setLoading] = useState(false);
+
   const [location, setLocation] = useState(null);
+
+  const [recognizedStudent, setRecognizedStudent] = useState(null);
+  const [confirmed, setConfirmed] = useState(false);
 
   useEffect(() => {
     startCamera();
@@ -25,7 +29,8 @@ export default function FaceCapture({ user }) {
     }
   };
 
-  const captureImage = () => {
+  // 📸 CAPTURE IMAGE
+  const captureImage = async () => {
     const canvas = document.createElement("canvas");
     const video = videoRef.current;
 
@@ -35,7 +40,24 @@ export default function FaceCapture({ user }) {
     const ctx = canvas.getContext("2d");
     ctx.drawImage(video, 0, 0);
 
-    setImage(canvas.toDataURL("image/jpeg"));
+    const imgData = canvas.toDataURL("image/jpeg");
+    setImage(imgData);
+
+    // 🔍 CALL FACE RECOGNITION
+    try {
+      const res = await API.post("/face/recognize", {
+        image: imgData
+      });
+
+      if (res.data.student) {
+        setRecognizedStudent(res.data.student);
+      } else {
+        alert(res.data.status || "Face not recognized");
+      }
+
+    } catch (err) {
+      alert("Face recognition failed");
+    }
   };
 
   // 📍 LOCATION
@@ -55,17 +77,17 @@ export default function FaceCapture({ user }) {
     }
   };
 
-  // 🚀 SUBMIT
+  // 🚀 MARK ATTENDANCE
   const handleSubmit = async () => {
 
-    if (!image) return alert("Capture image first");
+    if (!recognizedStudent) return alert("Face not recognized");
     if (!location) return alert("Location not available");
 
     try {
       setLoading(true);
 
       const res = await API.post("/attendance/mark", {
-        student_id: user.id,
+        student_id: recognizedStudent.id,
         timetable_id: 1,
         latitude: location.lat,
         longitude: location.lng
@@ -74,8 +96,7 @@ export default function FaceCapture({ user }) {
       alert(res.data.message);
 
     } catch (err) {
-      console.log("FULL ERROR:", err.response);
-alert(err.response?.data?.message || "Verification failed");
+      alert(err.response?.data?.message || "Verification failed");
     } finally {
       setLoading(false);
     }
@@ -84,29 +105,41 @@ alert(err.response?.data?.message || "Verification failed");
   return (
     <div className="capture-container">
 
+      {/* 🎥 Camera */}
       <video ref={videoRef} autoPlay className="video-box" />
 
       <button onClick={captureImage} className="btn">
-        Capture
+        Capture Face
       </button>
 
+      {/* 📸 Preview */}
       {image && (
         <img src={image} alt="preview" className="preview" />
       )}
 
-      <div style={{ marginTop: "10px" }}>
-        <p style={{ color: "green" }}>
-          📍 {location?.lat}, {location?.lng}
-        </p>
-      </div>
+      {/* 📍 Location */}
+      <p style={{ color: "green", marginTop: "10px" }}>
+        📍 {location?.lat}, {location?.lng}
+      </p>
 
-      <button
-        onClick={handleSubmit}
-        disabled={loading}
-        className="submit-btn"
-      >
-        {loading ? "VERIFYING..." : "SUBMIT"}
-      </button>
+      {/* 👤 Student Details */}
+      {recognizedStudent && (
+        <div className="student-card">
+          <h3>👤 {recognizedStudent.name}</h3>
+          <p>USN: {recognizedStudent.usn}</p>
+          <p>Section: {recognizedStudent.section}</p>
+
+          {!confirmed ? (
+            <button onClick={() => setConfirmed(true)}>
+              Confirm Identity
+            </button>
+          ) : (
+            <button onClick={handleSubmit} disabled={loading}>
+              {loading ? "MARKING..." : "Mark Attendance"}
+            </button>
+          )}
+        </div>
+      )}
 
     </div>
   );

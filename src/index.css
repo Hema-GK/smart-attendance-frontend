@@ -37,3 +37,37 @@ input:focus {
   outline: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
+
+.capture-container {
+  text-align: center;
+  padding: 20px;
+}
+
+.video-box {
+  width: 300px;
+  border-radius: 10px;
+}
+
+.preview {
+  width: 200px;
+  margin-top: 10px;
+  border-radius: 10px;
+}
+
+.student-card {
+  margin-top: 20px;
+  padding: 15px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.student-card button {
+  margin-top: 10px;
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  background: #4CAF50;
+  color: white;
+  cursor: pointer;
+}
