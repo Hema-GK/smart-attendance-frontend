@@ -6,10 +6,10 @@ import android.content.Context;
 
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
+import com.getcapacitor.JSObject;
+
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.PluginMethod;
-
-import org.json.JSONObject;
 
 @CapacitorPlugin(name = "WifiPlugin")
 public class WifiPlugin extends Plugin {
@@ -17,7 +17,9 @@ public class WifiPlugin extends Plugin {
     @PluginMethod
     public void getBSSID(PluginCall call) {
         try {
-            WifiManager wifiManager = (WifiManager) getContext().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
+            WifiManager wifiManager = (WifiManager) getContext()
+                    .getApplicationContext()
+                    .getSystemService(Context.WIFI_SERVICE);
 
             if (wifiManager == null) {
                 call.reject("WiFi Manager not available");
@@ -26,15 +28,20 @@ public class WifiPlugin extends Plugin {
 
             WifiInfo wifiInfo = wifiManager.getConnectionInfo();
 
-            String bssid = wifiInfo.getBSSID();
+            String bssid = "00:00:00:00:00:00";
 
-            JSONObject ret = new JSONObject();
-
-            if (bssid == null) {
-                ret.put("bssid", "00:00:00:00:00:00");
-            } else {
-                ret.put("bssid", bssid.toLowerCase());
+            if (wifiInfo != null && wifiInfo.getBSSID() != null) {
+                bssid = wifiInfo.getBSSID();
             }
+
+            // Android restriction case
+            if (bssid.equals("02:00:00:00:00:00")) {
+                call.reject("Location OFF or Android restricted BSSID");
+                return;
+            }
+
+            JSObject ret = new JSObject();
+            ret.put("bssid", bssid.toLowerCase());
 
             call.resolve(ret);
 
