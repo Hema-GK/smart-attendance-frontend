@@ -2,6 +2,8 @@ package com.example.app;
 
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.example.app.BlePlugin;
+
 
 public class MainActivity extends BridgeActivity {
 
@@ -10,6 +12,6 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
 
         // 🔥 Register BLE plugin
-        registerPlugin(BLEPlugin.class);
+        registerPlugin(BlePlugin.class);
     }
 }

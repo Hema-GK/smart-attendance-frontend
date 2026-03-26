@@ -67,16 +67,16 @@ export default function FaceCapture({ user }) {
     try {
       const res = await BlePlugin.startScan();
 
-      setBeaconUUID(res.uuid);
-      setRssi(res.rssi);
+      console.log("BLE RESPONSE:", res);
 
-      setSyncing(false);
-
-      console.log("UUID:", res.uuid);
-      console.log("RSSI:", res.rssi);
+      if (res && res.uuid) {
+        setBeaconUUID(res.uuid);
+        setRssi(res.rssi);
+      }
 
     } catch (err) {
       console.log("Beacon error:", err);
+    } finally {
       setSyncing(false);
     }
   };
@@ -93,7 +93,7 @@ export default function FaceCapture({ user }) {
 
       const res = await API.post("/attendance/mark", {
         student_id: user.id,
-        timetable_id: 1, // 🔥 change dynamically later
+        timetable_id: 1,
         latitude: location.lat,
         longitude: location.lng,
         beacon_uuid: beaconUUID,
@@ -132,7 +132,7 @@ export default function FaceCapture({ user }) {
             </p>
 
             <p style={{ color: "green" }}>
-              📶 RSSI: {rssi || "N/A"} dBm
+              📶 RSSI: {rssi !== null ? rssi : "N/A"} dBm
             </p>
 
             <p style={{ color: "green" }}>
